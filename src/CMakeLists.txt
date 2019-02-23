@@ -1,6 +1,7 @@
 SET(COMMON_SRC
-  "util/vector2d.cpp"
-  "util/vector2d.cu"
+  plummer.cpp
+  grid.cpp
+  multiplane.cpp
 )
 
 add_library(lens_common
@@ -10,7 +11,7 @@ add_library(lens_common
 set_property(TARGET lens_common PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 
 add_executable(lenstest
-  "main.cpp"
+  main.cpp
 )
 
 # target_link_libraries(lenstest lens_common)

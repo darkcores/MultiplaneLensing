@@ -2,14 +2,14 @@
 
 #include "util/vector2d.h"
 
-template <class T> class Lens {
+class Lens {
   private:
-    Lens();
 
   public:
-    virtual Vector2D<T> traceTheta(T Ds, T Dds, Vector2D<T> theta) const = 0;
-    virtual Vector2D<T> getAlphaVector(Vector2D<T> theta) const = 0;
-    virtual void getAlphaVectorDerivatives(Vector2D<T> theta, T &axx, T &ayy,
-                                           T &axy) const = 0;
-	virtual T getSurfaceMassDensity(Vector2D<T> theta) const = 0;
+    virtual Vector2D<double> traceTheta(double Ds, double Dds,
+                                             Vector2D<double> theta) const = 0;
+    virtual Vector2D<double> getAlphaVector(Vector2D<double> theta) const = 0;
+    virtual void getAlphaVectorDerivatives(Vector2D<double> theta, double &axx,
+                                           double &ayy, double &axy) const = 0;
+    virtual double getSurfaceMassDensity(Vector2D<double> theta) const = 0;
 };
