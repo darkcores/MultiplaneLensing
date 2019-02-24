@@ -1,5 +1,5 @@
 SET(COMMON_SRC
-  plummer.cpp
+  plummer.cu
   grid.cpp
   multiplane.cpp
   util/cosmology.cu

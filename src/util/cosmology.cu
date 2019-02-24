@@ -66,7 +66,7 @@ Cosmology::angularDiameterDistance(double z1, double z2, int num) const {
 
     double result = SPEED_C * A * ((1.0 / (1.0 + z2)) * TH) / m_h;
 
-    return result;
+    return result * DIST_MPC;
 }
 
 __host__ __device__ double

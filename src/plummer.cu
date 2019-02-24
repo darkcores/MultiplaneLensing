@@ -3,7 +3,7 @@
 #include "util/constants.h"
 #include <cmath>
 
-Plummer::Plummer(const double Dd, const double mass, const double angularwidth/*,
+__host__ __device__ Plummer::Plummer(const double Dd, const double mass, const double angularwidth/*,
 																				const Vector2D<double> &angularposition*/) {
     m_Dd = Dd;
     m_mass = mass;
@@ -12,14 +12,15 @@ Plummer::Plummer(const double Dd, const double mass, const double angularwidth/*
     // m_angularpos = angularposition;
 }
 
-Vector2D<double> Plummer::traceTheta(double Ds, double Dds,
-                                     Vector2D<double> theta) const {
+__host__ __device__ Vector2D<double>
+Plummer::traceTheta(double Ds, double Dds, Vector2D<double> theta) const {
     auto trace = getAlphaVector(theta);
     trace = theta - (trace * (Dds / Ds));
     return trace;
 }
 
-Vector2D<double> Plummer::getAlphaVector(Vector2D<double> theta) const {
+__host__ __device__ Vector2D<double>
+Plummer::getAlphaVector(Vector2D<double> theta) const {
     Vector2D<double> alphavect(0, 0);
     double mass = getMassInside(theta.length());
 
@@ -38,15 +39,16 @@ Vector2D<double> Plummer::getAlphaVector(Vector2D<double> theta) const {
     return alphavect;
 }
 
-double Plummer::getMassInside(double thetaLength) const {
+__host__ __device__ double Plummer::getMassInside(double thetaLength) const {
     double t = thetaLength / m_angularwidth;
     double x = t * t;
     double x2 = 1.0 / x;
 
     return m_mass * (1.0 / (1.0 + x2));
 }
-void Plummer::getAlphaVectorDerivatives(Vector2D<double> theta, double &axx,
-                                        double &ayy, double &axy) const {
+__host__ __device__ void
+Plummer::getAlphaVectorDerivatives(Vector2D<double> theta, double &axx,
+                                   double &ayy, double &axy) const {
     double axx0 = 0;
     double axy0 = 0;
     double ayy0 = 0;
@@ -110,13 +112,15 @@ void Plummer::getAlphaVectorDerivatives(Vector2D<double> theta, double &axx,
     // return true;
 }
 
-double Plummer::getProfileSurfaceMassDensity(double thetaLength) const {
+__host__ __device__ double
+Plummer::getProfileSurfaceMassDensity(double thetaLength) const {
     double scaledtheta = thetaLength / m_angularwidth;
     double denom = (1.0 + scaledtheta * scaledtheta) * getLensDistance();
     double dens = m_mass / (CONST_PI * m_angularwidth2 * denom * denom);
     return dens;
 }
 
-double Plummer::getSurfaceMassDensity(Vector2D<double> theta) const {
+__host__ __device__ double
+Plummer::getSurfaceMassDensity(Vector2D<double> theta) const {
     return getProfileSurfaceMassDensity(theta.length());
 }

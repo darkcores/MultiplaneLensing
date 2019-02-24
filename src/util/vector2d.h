@@ -55,13 +55,13 @@ template <typename T> class Vector2D {
 
         if (absX > absY) {
             T tmp = absY / absX;
-            return absX * std::sqrt((T)1.0 + tmp * tmp);
+            return absX * sqrt((T)1.0 + tmp * tmp);
         }
         // absX <= absY
         if (absY == 0) // => absx == 0
             return 0;
         T tmp = absX / absY;
-        return absY * std::sqrt(tmp * tmp + (T)1.0);
+        return absY * sqrt(tmp * tmp + (T)1.0);
         // return sqrt(m_x * m_x + m_y * m_y);
     }
 
