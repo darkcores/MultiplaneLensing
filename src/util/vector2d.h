@@ -49,6 +49,10 @@ template <typename T> class Vector2D {
         return *this;
     }
 
+	__host__ __device__ bool operator==(const Vector2D<T> &cmp) const {
+		return (m_x == cmp.x() && m_y == cmp.y());
+	}
+
     __host__ __device__ T length() const {
         T absX = abs(m_x);
         T absY = abs(m_y);

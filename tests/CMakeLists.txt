@@ -7,6 +7,7 @@ add_executable(unit_tests
 
 add_executable(cu_unit_tests
   util_tests.cu
+  plummer_tests.cu
 )
 
 target_link_libraries(unit_tests
