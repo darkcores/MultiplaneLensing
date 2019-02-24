@@ -49,11 +49,21 @@ template <typename T> class Vector2D {
         return *this;
     }
 
-	__host__ __device__ T length() const {
-		return sqrt(m_x * m_x + m_y * m_y);
-	}
+    __host__ __device__ T length() const {
+        T absX = abs(m_x);
+        T absY = abs(m_y);
 
-	__host__ __device__ T lengthSq() const {
-		return m_x * m_x + m_y * m_y;
-	}
+        if (absX > absY) {
+            T tmp = absY / absX;
+            return absX * std::sqrt((T)1.0 + tmp * tmp);
+        }
+        // absX <= absY
+        if (absY == 0) // => absx == 0
+            return 0;
+        T tmp = absX / absY;
+        return absY * std::sqrt(tmp * tmp + (T)1.0);
+        // return sqrt(m_x * m_x + m_y * m_y);
+    }
+
+    __host__ __device__ T lengthSq() const { return m_x * m_x + m_y * m_y; }
 };

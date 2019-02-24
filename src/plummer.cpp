@@ -3,13 +3,13 @@
 #include "util/constants.h"
 #include <cmath>
 
-Plummer::Plummer(const double Dd, const double mass, const double angularwidth,
-                 const Vector2D<double> &angularposition) {
+Plummer::Plummer(const double Dd, const double mass, const double angularwidth/*,
+																				const Vector2D<double> &angularposition*/) {
     m_Dd = Dd;
     m_mass = mass;
     m_angularwidth = angularwidth;
     m_angularwidth2 = angularwidth * angularwidth;
-    m_angularpos = angularposition;
+    // m_angularpos = angularposition;
 }
 
 Vector2D<double> Plummer::traceTheta(double Ds, double Dds,

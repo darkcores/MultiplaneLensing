@@ -1,12 +1,23 @@
 include_directories("../src/")
 
-add_executable(vec2d
-  vector2d_tests.cpp
-  vector2d_tests.cu
-  )
-
-target_link_libraries(vec2d
-  ${GTEST_BOTH_LIBRARIES}
+add_executable(unit_tests
+  util_tests.cpp
+  plummer_tests.cpp
 )
 
-add_test(AllTestsInVec2D vec2d)
+add_executable(cu_unit_tests
+  util_tests.cu
+)
+
+target_link_libraries(unit_tests
+  ${GTEST_BOTH_LIBRARIES}
+  lens_common
+)
+
+target_link_libraries(cu_unit_tests
+  ${GTEST_BOTH_LIBRARIES}
+  lens_common
+)
+
+add_test(NAME AllTests COMMAND unit_tests)
+add_test(NAME AllTestsCuda COMMAND cu_unit_tests)

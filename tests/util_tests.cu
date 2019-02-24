@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <util/vector2d.h>
+#include <util/cosmology.h>
 
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
@@ -8,6 +9,9 @@
 
 __global__ void scalegpu(int n, Vector2D<double> *data, double scalar) {
     int i = threadIdx.x;
+
+	Vector2D<double> x;
+	Cosmology cosm(0.3, 0.3, 0.3, 0.4);
 
     if (i < n) {
         data[i].setX(i);
@@ -17,12 +21,12 @@ __global__ void scalegpu(int n, Vector2D<double> *data, double scalar) {
 }
 
 template <typename T> struct mul {
-    __host__ __device__ T operator()(const T &x, double y) const {
+    __device__ T operator()(const T &x, double y) const {
         return x * y;
     }
 };
 
-TEST(Vector2DCuTests, ScalingDouble) {
+TEST(UtilCuTests, ScalingDouble) {
     thrust::host_vector<Vector2D<double>> H(4);
     thrust::device_vector<Vector2D<double>> D = H;
     auto raw = thrust::raw_pointer_cast(&D[0]);
@@ -33,4 +37,8 @@ TEST(Vector2DCuTests, ScalingDouble) {
     thrust::copy(D.begin(), D.end(), H.begin());
 	ASSERT_EQ(H[0].x(), 0);
 	ASSERT_EQ(H[1].x(), 1);
+}
+
+TEST(UtilCuTests, CosmologyTests) {
+	// Cosmology cosm(0.1, 0.1, 0.1, 0.1);
 }

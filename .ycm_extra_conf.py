@@ -36,11 +36,13 @@ import ycm_core
 flags = [
     '-x',
     'c++',
+    '-DUSE_CLANG_COMPLETER',
     '-Wall',
     '-Wextra',
     '-std=c++14',
     '-I/opt/cuda/include',
     '-I./src',
+    '--cuda-path=/opt/cuda',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
@@ -60,7 +62,8 @@ if os.path.exists(compilation_database_folder):
 else:
     database = None
 
-SOURCE_EXTENSIONS = ['.C', '.cpp', '.cxx', '.cc', '.c', '.m', '.mm', 'cu']
+SOURCE_EXTENSIONS = ['.C', '.cpp', '.cxx', '.cc', '.c', '.m', '.mm', '.cu',
+                     '.cuda']
 
 
 def DirectoryOfThisScript():
@@ -98,7 +101,7 @@ def MakeRelativePathsInFlagsAbsolute(flags, working_directory):
 
 def IsHeaderFile(filename):
     extension = os.path.splitext(filename)[1]
-    return extension in ['.H', '.h', '.hxx', '.hpp', '.hh', 'cuh']
+    return extension in ['.H', '.h', '.hxx', '.hpp', '.hh', '.cuh']
 
 
 def GetCompilationInfoForFile(filename):
@@ -134,9 +137,10 @@ def FlagsForFile(filename, **kwargs):
         relative_to = DirectoryOfThisScript()
         final_flags = MakeRelativePathsInFlagsAbsolute(flags, relative_to)
 
-    if filename.endswith('.cu'):
-        final_flags[1] = "cuda"
-        final_flags.append('--cuda-path=/opt/cuda')
+    # if filename.endswith('.cu'):
+        # final_flags[1] = "cuda"
+        # final_flags.append('--cuda-gpu-arch=sm_35')
+        # final_flags.append('--cuda-path=/opt/cuda')
 
     return {
         'flags': final_flags,
