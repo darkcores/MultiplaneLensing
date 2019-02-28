@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lens.h"
+#include "composite.h"
 #include "image.h"
 
 #include <map>
@@ -10,7 +10,7 @@
 class Multiplane {
   private:
 	// apparently std map is already sorted on keys, which is probably useful 
-	std::map<double, std::shared_ptr<Lens>> lenses;
+	std::map<double, std::shared_ptr<CompositeLens>> lenses;
 
   public:
     Multiplane();

@@ -1,9 +1,9 @@
 SET(COMMON_SRC
   plummer.cu
+  composite.cu
   grid.cpp
   multiplane.cpp
   util/cosmology.cu
-#  util/cosmology.cpp
 )
 
 add_library(lens_common

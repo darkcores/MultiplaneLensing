@@ -17,7 +17,7 @@ __global__ void alphaCalc(int n, Vector2D<double> *data) {
     const double Dd = cosm.angularDiameterDistance(z_d);
     const Plummer plum(Dd, 1000000000, 30 * ANGLE_ARCSEC);
 
-    data[i] = plum.getAlphaVector(vec);
+    data[i] = plum.getAlpha(vec);
 }
 
 TEST(PlummerCuTests, TestAlpha) {

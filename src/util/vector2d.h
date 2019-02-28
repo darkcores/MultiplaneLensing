@@ -21,25 +21,33 @@ template <typename T> class Vector2D {
     __host__ __device__ void setX(const T &x) { m_x = x; }
     __host__ __device__ void setY(const T &y) { m_y = y; }
 
-    template <typename Y>
-    __host__ __device__ Vector2D<T> operator*(const Y &scalar) const {
+    __host__ __device__ Vector2D<T> operator*(const T &scalar) const {
         Vector2D<T> n(m_x * scalar, m_y * scalar);
         return n;
     }
-    template <typename Y>
-    __host__ __device__ Vector2D<T> &operator*=(const Y &scalar) {
+    __host__ __device__ void operator*=(const T &scalar) {
         m_x *= scalar;
         m_y *= scalar;
+        // return *this;
+    }
+    __host__ __device__ void operator+=(const Vector2D<T> &add) {
+        m_x += add.x();
+        m_y += add.y();
+        // return *this;
+    }
+
+    __host__ __device__ Vector2D<T> operator/(const T &scalar) const {
+        Vector2D<T> n(m_x / scalar, m_y / scalar);
+        return n;
+    }
+    __host__ __device__ Vector2D<T> &operator/=(const T &scalar) {
+        m_x /= scalar;
+        m_y /= scalar;
         return *this;
     }
 
     template <typename Y>
-    __host__ __device__ Vector2D<T> operator/(const Y &scalar) const {
-        Vector2D<T> n(m_x / scalar, m_y / scalar);
-        return n;
-    }
-
-    __host__ __device__ Vector2D<T> operator-(const Vector2D<T> &diff) const {
+    __host__ __device__ Vector2D<T> operator-(const Vector2D<Y> &diff) const {
         Vector2D<T> n(m_x - diff.x(), m_y - diff.y());
         return n;
     }
@@ -49,9 +57,14 @@ template <typename T> class Vector2D {
         return *this;
     }
 
-	__host__ __device__ bool operator==(const Vector2D<T> &cmp) const {
-		return (m_x == cmp.x() && m_y == cmp.y());
-	}
+    __host__ __device__ bool operator==(const Vector2D<T> &cmp) const {
+        return (m_x == cmp.x() && m_y == cmp.y());
+    }
+
+    __host__ __device__ Vector2D<T> pow(const int exp) const {
+        Vector2D<T> x(pow(m_x, exp), pow(m_y, exp));
+        return x;
+    }
 
     __host__ __device__ T length() const {
         T absX = abs(m_x);
