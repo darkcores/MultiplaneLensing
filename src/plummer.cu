@@ -32,11 +32,11 @@ Plummer::getBeta(Vector2D<double> theta) const {
 
 __host__ __device__ Vector2D<float>
 Plummer::getAlphaf(Vector2D<float> theta) const {
-	// theta * m_scale;
+    // theta * m_scale;
     auto alpha = theta / (theta.lengthSq() + m_angularwidth2_f);
     alpha *= m_4GM_f;
-	// alpha /= m_scale;
-	return alpha;
+    // alpha /= m_scale;
+    return alpha;
 }
 
 __host__ __device__ Vector2D<float>
@@ -65,7 +65,7 @@ __host__ __device__ void Plummer::setSource(const double Ds, const double Dds) {
 
 __host__ __device__ void Plummer::setScale(const float scale) {
     m_scale = scale;
-	m_angularwidth2_f = (m_angularwidth * m_scale) * (m_angularwidth * m_scale);
+    m_angularwidth2_f = (m_angularwidth * m_scale) * (m_angularwidth * m_scale);
     m_4GM_f = m_4GM * (scale * scale);
     m_4GM_s_f = m_4GM_s * (scale * scale);
 }
@@ -75,3 +75,42 @@ __host__ __device__ void Plummer::setMass(const double mass) {
     // TODO if this is slow optimize calculations
     setDistance(m_Dd);
 }
+
+/*
+__host__ __device__ Plummerf::Plummerf(const float Dd, const float mass,
+                                       const float angularwidth) {
+
+    m_angularwidth = angularwidth;
+    m_Dd = Dd;
+    m_D = 0;
+    m_mass = mass;
+    setScale();
+}
+
+__host__ __device__ void Plummerf::setScale(const float scale) {
+    m_angularwidth2_f = (m_angularwidth * scale) * (m_angularwidth * scale);
+    m_4GM_f =
+        (4 * CONST_G * m_mass) / (SPEED_C * SPEED_C * m_Dd) * (scale * scale);
+    // m_4GM_s_f = m_4GM_s * (scale * scale);
+}
+
+__host__ __device__ Vector2D<float>
+Plummerf::getAlphaf(Vector2D<float> theta) const {
+    auto alpha = theta / (theta.lengthSq() + m_angularwidth2_f);
+    alpha *= m_4GM_f;
+    return alpha;
+}
+
+__host__ __device__ Vector2D<float>
+Plummerf::getBetaf(Vector2D<float> theta) const {
+    auto beta = theta / (theta.lengthSq() + m_angularwidth2_f);
+    beta *= m_4GM_f * m_D;
+    beta = theta - beta;
+    return beta;
+}
+
+__host__ __device__ void Plummerf::setSource(const float Ds,
+                                             const float Dds) {
+    m_D = Dds / Ds;
+}
+*/
