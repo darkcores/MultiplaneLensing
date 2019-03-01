@@ -36,26 +36,27 @@ CompositeLens CompositeLensBuilder::getLens() {
 }
 
 CompositeLens CompositeLensBuilder::getCuLens() {
-	#ifdef __CUDACC__
-	dev_m_lenses = m_lenses;
-	auto lens_ptr = thrust::raw_pointer_cast(&dev_m_lenses[0]);
-	#else
-	CompositeLens *lens_ptr = 0;
-	#endif
+#ifdef __CUDACC__
+    dev_m_lenses = m_lenses;
+    auto lens_ptr = thrust::raw_pointer_cast(&dev_m_lenses[0]);
+#else
+    CompositeLens *lens_ptr = 0;
+#endif
     CompositeLens lens(m_Dd, m_Ds, m_Dds, lens_ptr, m_lenses.size(), m_scale);
     return lens;
 }
 
 CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
-                             LensData *data_ptr, size_t size, float scale) {
+                             LensData *data_ptr, size_t size, float scale)
+    : cur_data_ptr(data_ptr) {
     m_Dd = Dd;
     m_Ds = Ds;
     m_Dds = Dds;
-	m_D = m_Dds / m_Ds;
-	m_Df = m_Dds / m_Ds;
-	m_scale = scale;
-    cur_data_ptr = data_ptr;
-	length = size;
+    m_D = m_Dds / m_Ds;
+    m_Df = m_Dds / m_Ds;
+    m_scale = scale;
+    // cur_data_ptr = data_ptr;
+    length = size;
 }
 
 __host__ __device__ Vector2D<double>
@@ -76,20 +77,45 @@ CompositeLens::getBeta(Vector2D<double> theta) const {
 }
 
 __host__ __device__ Vector2D<float>
-CompositeLens::getAlphaf(Vector2D<float> &theta) const {
-	theta *= m_scale;
+CompositeLens::getAlphaf(Vector2D<float> theta) const {
+    theta *= m_scale;
     Vector2D<float> alpha(0, 0);
+#ifdef __CUDA_ARCH____
+    __shared__ LensData data[length];
+    if (threadIdx.x == 0) {
+            for (int i = 0; i < length; i++)
+                    data = cur_data_ptr[i];
+    }
+    __syncthreads();
+    for (int i = 0; i < length; i++) {
+    auto movedtheta = theta - (data[i].position * m_scale);
+    alpha += data[i].lens.getAlphaf(movedtheta);
+    }
+    #else
     for (size_t i = 0; i < length; i++) {
+        /*
+        #ifdef __CUDA_ARCH____
+        __shared__ LensData data;
+        if (threadIdx.x == 0) {
+                data = cur_data_ptr[i];
+        }
+        __syncthreads();
+auto movedtheta = theta - (data.position * m_scale);
+alpha += data.lens.getAlphaf(movedtheta);
+        #else
+        */
         auto movedtheta = theta - (cur_data_ptr[i].position * m_scale);
         alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
+        // #endif
     }
-	theta /= m_scale;
-	alpha /= m_scale;
-	return alpha;
+    #endif
+    // theta /= m_scale;
+    alpha /= m_scale;
+    return alpha;
 }
 
 __host__ __device__ Vector2D<float>
-CompositeLens::getBetaf(Vector2D<float> &theta) const {
+CompositeLens::getBetaf(Vector2D<float> theta) const {
     Vector2D<float> beta;
     beta = theta - getAlphaf(theta) * m_Df;
     return beta;

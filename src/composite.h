@@ -19,6 +19,7 @@ class LensData {
     LensData(const Plummer &l, const Vector2D<float> &pos) : lens(l) {
         position = pos;
     }
+	__device__ LensData() {}
 };
 
 class CompositeLens {
@@ -27,17 +28,18 @@ class CompositeLens {
 	double m_D;
 	float m_Df;
     float m_scale;
-    LensData *cur_data_ptr;
+	LensData *cur_data_ptr;
     size_t length;
 
   public:
     CompositeLens(const double Dd, const double Ds, const double Dds,
                   LensData *data_ptr, size_t size, float scale = 60);
+	__device__ CompositeLens() { }
 
     __host__ __device__ Vector2D<double> getAlpha(Vector2D<double> theta) const;
-    __host__ __device__ Vector2D<float> getAlphaf(Vector2D<float> &theta) const;
+    __host__ __device__ Vector2D<float> getAlphaf(Vector2D<float> theta) const;
     __host__ __device__ Vector2D<double> getBeta(Vector2D<double> theta) const;
-    __host__ __device__ Vector2D<float> getBetaf(Vector2D<float> &theta) const;
+    __host__ __device__ Vector2D<float> getBetaf(Vector2D<float> theta) const;
 };
 
 class CompositeLensBuilder {

@@ -15,6 +15,7 @@ class Plummer {
     float m_scale;
 
   public:
+	__device__ Plummer() {}
     __host__ __device__ Plummer(const double Dd, const double mass,
                                 const double angularwidth);
 

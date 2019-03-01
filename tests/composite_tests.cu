@@ -39,12 +39,19 @@ __global__ void betatest(int n, CompositeLens *lens, Vector2D<double> *betas) {
     betas[i] = lens->getBeta(vec);
 }
 
-__global__ void betaftest(int n, CompositeLens *lens, float *thetax,
-                          float *thetay, Vector2D<float> *betas) {
+__global__ void betaftest(int n, const CompositeLens *const lens, float *thetax,
+                          float *thetay, float *betax, float *betay) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
+	__shared__ CompositeLens slens;
+	if (threadIdx.x == 0) {
+		slens = *lens;
+	}
+	__syncthreads();
     // Vector2D<float> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
 	Vector2D<float> vec(thetax[i], thetay[i]);
-    betas[i] = lens->getBetaf(vec);
+    auto betas = slens.getBetaf(vec);
+	betax[i] = betas.x();
+	betay[i] = betas.y();
 }
 
 TEST(CompositeCuTests, TestAlpha) {
@@ -107,7 +114,7 @@ TEST(CompositeCuTests, TestBetaF) {
     auto Dd = cosm.angularDiameterDistance(z_d);
     auto Ds = cosm.angularDiameterDistance(z_s);
     auto Dds = cosm.angularDiameterDistance(z_d, z_s);
-    auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+    auto lensbuilder = createGrid(Dd, 10, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
     auto lens = lensbuilder.getCuLens();
 
@@ -123,11 +130,14 @@ TEST(CompositeCuTests, TestBetaF) {
     }
     thrust::device_vector<float> dev_thetax(thetax);
     thrust::device_vector<float> dev_thetay(thetay);
-    thrust::device_vector<Vector2D<float>> betas(16777216);
-    auto b_ptr = thrust::raw_pointer_cast(&betas[0]);
+    thrust::device_vector<float> betax(16777216);
+    thrust::device_vector<float> betay(16777216);
+    auto bx_ptr = thrust::raw_pointer_cast(&betax[0]);
+    auto by_ptr = thrust::raw_pointer_cast(&betay[0]);
     auto tx_ptr = thrust::raw_pointer_cast(&dev_thetax[0]);
     auto ty_ptr = thrust::raw_pointer_cast(&dev_thetay[0]);
 
-    betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, b_ptr);
-    thrust::host_vector<Vector2D<float>> h_betas(betas);
+	cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
+    betaftest<<<16777216 / 512, 512>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr, by_ptr);
+    // thrust::host_vector<Vector2D<float>> h_betas(betas);
 }
