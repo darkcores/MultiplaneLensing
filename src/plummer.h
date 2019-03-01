@@ -20,9 +20,9 @@ class Plummer {
 
     __host__ __device__ Vector2D<double> getAlpha(Vector2D<double> theta) const;
     // Scaling doesn't work here I think TODO
-    __host__ __device__ Vector2D<float> getAlphaf(Vector2D<float> theta) const;
+    __host__ __device__ Vector2D<float> getAlphaf(const Vector2D<float> &theta) const;
     __host__ __device__ Vector2D<double> getBeta(Vector2D<double> theta) const;
-    __host__ __device__ Vector2D<float> getBetaf(Vector2D<float> theta) const;
+    __host__ __device__ Vector2D<float> getBetaf(const Vector2D<float> &theta) const;
 
     __host__ __device__ void setDistance(const double Dd);
     __host__ __device__ void setSource(const double Ds, const double Dds);

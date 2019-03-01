@@ -6,14 +6,6 @@ void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
     m_lenses.push_back(LensData(lens, position));
 }
 
-void CompositeLensBuilder::prepare() {
-#ifdef __CUDACC__
-    dev_m_lenses = m_lenses;
-    // cur_data_ptr = thrust::raw_pointer_cast(&dev_m_lenses[0]);
-    // length = m_lenses.size();
-#endif
-}
-
 void CompositeLensBuilder::clear() { m_lenses.clear(); }
 
 void CompositeLensBuilder::setDistance(const double Dd) {
@@ -84,19 +76,20 @@ CompositeLens::getBeta(Vector2D<double> theta) const {
 }
 
 __host__ __device__ Vector2D<float>
-CompositeLens::getAlphaf(Vector2D<float> theta) const {
+CompositeLens::getAlphaf(Vector2D<float> &theta) const {
 	theta *= m_scale;
     Vector2D<float> alpha(0, 0);
     for (size_t i = 0; i < length; i++) {
         auto movedtheta = theta - (cur_data_ptr[i].position * m_scale);
         alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
     }
+	theta /= m_scale;
 	alpha /= m_scale;
 	return alpha;
 }
 
 __host__ __device__ Vector2D<float>
-CompositeLens::getBetaf(Vector2D<float> theta) const {
+CompositeLens::getBetaf(Vector2D<float> &theta) const {
     Vector2D<float> beta;
     beta = theta - getAlphaf(theta) * m_Df;
     return beta;

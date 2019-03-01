@@ -1,16 +1,28 @@
 #pragma once
 
 #include "composite.h"
-#include "image.h"
 
-#include <map>
-#include <utility>
-#include <memory>
+#include <cuda_runtime_api.h>
+#ifdef __CUDACC__
+#include <thrust/device_vector.h>
+#endif
+#include <thrust/host_vector.h>
+
+class PlanaData {
+public:
+	PlanaData(CompositeLens lens, double z);
+
+	CompositeLens lens;
+	double redshift;
+};
+
+class MultiplaneBuilder {
+private:
+	
+};
 
 class Multiplane {
   private:
-	// apparently std map is already sorted on keys, which is probably useful 
-	std::map<double, std::shared_ptr<CompositeLens>> lenses;
 
   public:
     Multiplane();

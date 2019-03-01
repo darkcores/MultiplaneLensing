@@ -31,7 +31,7 @@ Plummer::getBeta(Vector2D<double> theta) const {
 }
 
 __host__ __device__ Vector2D<float>
-Plummer::getAlphaf(Vector2D<float> theta) const {
+Plummer::getAlphaf(const Vector2D<float> &theta) const {
     // theta * m_scale;
     auto alpha = theta / (theta.lengthSq() + m_angularwidth2_f);
     alpha *= m_4GM_f;
@@ -40,7 +40,7 @@ Plummer::getAlphaf(Vector2D<float> theta) const {
 }
 
 __host__ __device__ Vector2D<float>
-Plummer::getBetaf(Vector2D<float> theta) const {
+Plummer::getBetaf(const Vector2D<float> &theta) const {
     // theta *= m_scale;
     auto beta = theta / (theta.lengthSq() + m_angularwidth2_f);
     beta *= m_4GM_s_f;

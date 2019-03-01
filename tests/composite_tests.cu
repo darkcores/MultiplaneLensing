@@ -26,22 +26,25 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
     return lensbuilder;
 }
 
-__global__ void alphatest(int n, CompositeLens *lens, Vector2D<double> *alphas) {
+__global__ void alphatest(int n, CompositeLens *lens,
+                          Vector2D<double> *alphas) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     Vector2D<double> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
-	alphas[i] = lens->getAlpha(vec);
+    alphas[i] = lens->getAlpha(vec);
 }
 
 __global__ void betatest(int n, CompositeLens *lens, Vector2D<double> *betas) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     Vector2D<double> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
-	betas[i] = lens->getBeta(vec);
+    betas[i] = lens->getBeta(vec);
 }
 
-__global__ void betaftest(int n, CompositeLens *lens, Vector2D<float> *betas) {
+__global__ void betaftest(int n, CompositeLens *lens, float *thetax,
+                          float *thetay, Vector2D<float> *betas) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    Vector2D<float> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
-	betas[i] = lens->getBetaf(vec);
+    // Vector2D<float> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
+	Vector2D<float> vec(thetax[i], thetay[i]);
+    betas[i] = lens->getBetaf(vec);
 }
 
 TEST(CompositeCuTests, TestAlpha) {
@@ -61,18 +64,18 @@ TEST(CompositeCuTests, TestAlpha) {
     alphatest<<<1048576 / 256, 256>>>(1048576, l_ptr, a_ptr);
     thrust::host_vector<Vector2D<double>> h_alphas(alphas);
 
-	/*
-	auto tlens = lensbuilder.getLens();
-    for (int i = 0; i < 128; i += 64) {
-        for (int j = 0; j < 64; j++) {
-            int idx = i + j;
-            Vector2D<double> vec((idx % 7) * ANGLE_ARCSEC,
-                                 (idx % 5) * ANGLE_ARCSEC);
-            Vector2D<double> result = tlens.getAlpha(vec);
-            EXPECT_EQ(h_alphas[idx], result);
-        }
+    /*
+    auto tlens = lensbuilder.getLens();
+for (int i = 0; i < 128; i += 64) {
+    for (int j = 0; j < 64; j++) {
+        int idx = i + j;
+        Vector2D<double> vec((idx % 7) * ANGLE_ARCSEC,
+                             (idx % 5) * ANGLE_ARCSEC);
+        Vector2D<double> result = tlens.getAlpha(vec);
+        EXPECT_EQ(h_alphas[idx], result);
     }
-	*/
+}
+    */
 }
 
 TEST(CompositeCuTests, TestBeta) {
@@ -85,14 +88,14 @@ TEST(CompositeCuTests, TestBeta) {
     auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
     auto lens = lensbuilder.getCuLens();
-	
+
     thrust::device_vector<CompositeLens> dv;
     dv.push_back(lensbuilder.getCuLens());
     auto l_ptr = thrust::raw_pointer_cast(&dv[0]);
 
     thrust::device_vector<Vector2D<double>> betas(1048576);
     auto b_ptr = thrust::raw_pointer_cast(&betas[0]);
-	
+
     betatest<<<1048576 / 256, 256>>>(1048576, l_ptr, b_ptr);
     thrust::host_vector<Vector2D<double>> h_betas(betas);
 }
@@ -107,14 +110,24 @@ TEST(CompositeCuTests, TestBetaF) {
     auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
     auto lens = lensbuilder.getCuLens();
-	
+
     thrust::device_vector<CompositeLens> dv;
     dv.push_back(lensbuilder.getCuLens());
     auto l_ptr = thrust::raw_pointer_cast(&dv[0]);
 
+    thrust::host_vector<float> thetax;
+    thrust::host_vector<float> thetay;
+    for (size_t i = 0; i < 16777216; i++) {
+        thetax.push_back((i % 7) * ANGLE_ARCSEC);
+        thetay.push_back((i % 5) * ANGLE_ARCSEC);
+    }
+    thrust::device_vector<float> dev_thetax(thetax);
+    thrust::device_vector<float> dev_thetay(thetay);
     thrust::device_vector<Vector2D<float>> betas(16777216);
     auto b_ptr = thrust::raw_pointer_cast(&betas[0]);
-	
-    betaftest<<<16777216 / 256, 256>>>(16777216, l_ptr, b_ptr);
+    auto tx_ptr = thrust::raw_pointer_cast(&dev_thetax[0]);
+    auto ty_ptr = thrust::raw_pointer_cast(&dev_thetay[0]);
+
+    betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, b_ptr);
     thrust::host_vector<Vector2D<float>> h_betas(betas);
 }
