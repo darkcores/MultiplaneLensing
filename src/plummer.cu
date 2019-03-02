@@ -30,6 +30,7 @@ Plummer::getBeta(Vector2D<double> theta) const {
     return beta;
 }
 
+#ifdef NODEF
 __host__ __device__ Vector2D<float>
 Plummer::getAlphaf(const Vector2D<float> &theta) const {
     // theta * m_scale;
@@ -48,6 +49,7 @@ Plummer::getBetaf(const Vector2D<float> &theta) const {
     // beta /= m_scale;
     return beta;
 }
+#endif
 
 __host__ __device__ void Plummer::setDistance(const double Dd) {
     m_Dd = Dd;

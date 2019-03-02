@@ -2,7 +2,7 @@ SET(COMMON_SRC
   plummer.cu
   composite.cu
   grid.cpp
-  multiplane.cpp
+  multiplane.cu
   util/cosmology.cu
 )
 

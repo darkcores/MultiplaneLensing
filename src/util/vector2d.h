@@ -10,7 +10,8 @@ template <typename T> class Vector2D {
 
   public:
     __host__ __device__ Vector2D() {}
-    __host__ __device__ Vector2D(T x, T y) {
+    __host__ __device__ Vector2D(const T &__restrict__ x,
+                                 const T &__restrict__ y) {
         m_x = x;
         m_y = y;
     };
@@ -22,8 +23,7 @@ template <typename T> class Vector2D {
     __host__ __device__ void setY(const T &y) { m_y = y; }
 
     __host__ __device__ Vector2D<T> operator*(const T &scalar) const {
-        Vector2D<T> n(m_x * scalar, m_y * scalar);
-        return n;
+        return Vector2D<T>(m_x * scalar, m_y * scalar);
     }
     __host__ __device__ void operator*=(const T &scalar) {
         m_x *= scalar;
@@ -37,24 +37,22 @@ template <typename T> class Vector2D {
     }
 
     __host__ __device__ Vector2D<T> operator/(const T &scalar) const {
-        Vector2D<T> n(m_x / scalar, m_y / scalar);
-        return n;
+        return Vector2D<T>(m_x / scalar, m_y / scalar);
     }
-    __host__ __device__ Vector2D<T> &operator/=(const T &scalar) {
+    __host__ __device__ void operator/=(const T &scalar) {
         m_x /= scalar;
         m_y /= scalar;
-        return *this;
+        // return *this;
     }
 
     template <typename Y>
     __host__ __device__ Vector2D<T> operator-(const Vector2D<Y> &diff) const {
-        Vector2D<T> n(m_x - diff.x(), m_y - diff.y());
-        return n;
+        return Vector2D<T>(m_x - diff.x(), m_y - diff.y());
     }
-    __host__ __device__ Vector2D<T> &operator-=(const Vector2D<T> &diff) {
+    __host__ __device__ void operator-=(const Vector2D<T> &diff) {
         m_x -= diff.x();
         m_y -= diff.y();
-        return *this;
+        // return *this;
     }
 
     __host__ __device__ bool operator==(const Vector2D<T> &cmp) const {
@@ -66,21 +64,23 @@ template <typename T> class Vector2D {
         return x;
     }
 
-    __host__ __device__ T length() const {
-        T absX = abs(m_x);
-        T absY = abs(m_y);
+    /*
+__host__ __device__ T length() const {
+    T absX = abs(m_x);
+    T absY = abs(m_y);
 
-        if (absX > absY) {
-            T tmp = absY / absX;
-            return absX * sqrt((T)1.0 + tmp * tmp);
-        }
-        // absX <= absY
-        if (absY == 0) // => absx == 0
-            return 0;
-        T tmp = absX / absY;
-        return absY * sqrt(tmp * tmp + (T)1.0);
-        // return sqrt(m_x * m_x + m_y * m_y);
+    if (absX > absY) {
+        T tmp = absY / absX;
+        return absX * sqrt((T)1.0 + tmp * tmp);
     }
+    // absX <= absY
+    if (absY == 0) // => absx == 0
+        return 0;
+    T tmp = absX / absY;
+    return absY * sqrt(tmp * tmp + (T)1.0);
+    // return sqrt(m_x * m_x + m_y * m_y);
+}
+    */
 
     __host__ __device__ T lengthSq() const { return m_x * m_x + m_y * m_y; }
 };

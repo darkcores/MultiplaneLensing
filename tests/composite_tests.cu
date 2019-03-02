@@ -39,19 +39,24 @@ __global__ void betatest(int n, CompositeLens *lens, Vector2D<double> *betas) {
     betas[i] = lens->getBeta(vec);
 }
 
-__global__ void betaftest(int n, const CompositeLens *const lens, float *thetax,
-                          float *thetay, float *betax, float *betay) {
+__global__ void betaftest(int n, const CompositeLens *const __restrict__ lens,
+                          const float *__restrict__ thetax,
+                          const float *__restrict__ thetay,
+                          float *__restrict__ betax,
+                          float *__restrict__ betay) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-	__shared__ CompositeLens slens;
-	if (threadIdx.x == 0) {
-		slens = *lens;
-	}
-	__syncthreads();
+    /*
+    __shared__ CompositeLens slens;
+    if (threadIdx.x == 0) {
+            slens = *lens;
+    }
+    __syncthreads();
+    */
     // Vector2D<float> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
-	Vector2D<float> vec(thetax[i], thetay[i]);
-    auto betas = slens.getBetaf(vec);
-	betax[i] = betas.x();
-	betay[i] = betas.y();
+    Vector2D<float> vec(thetax[i], thetay[i]);
+    auto betas = lens->getBetaf(vec);
+    betax[i] = betas.x();
+    betay[i] = betas.y();
 }
 
 TEST(CompositeCuTests, TestAlpha) {
@@ -137,7 +142,8 @@ TEST(CompositeCuTests, TestBetaF) {
     auto tx_ptr = thrust::raw_pointer_cast(&dev_thetax[0]);
     auto ty_ptr = thrust::raw_pointer_cast(&dev_thetay[0]);
 
-	cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-    betaftest<<<16777216 / 512, 512>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr, by_ptr);
+    cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
+    betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr,
+                                     by_ptr);
     // thrust::host_vector<Vector2D<float>> h_betas(betas);
 }

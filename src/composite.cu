@@ -1,6 +1,8 @@
 #include "composite.h"
 
-CompositeLensBuilder::CompositeLensBuilder() {}
+CompositeLensBuilder::CompositeLensBuilder() {
+	m_scale = 1;
+}
 
 void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
     m_lenses.push_back(LensData(lens, position));
@@ -24,10 +26,11 @@ void CompositeLensBuilder::setSource(const double Ds, const double Dds) {
 }
 
 void CompositeLensBuilder::setScale(const float scale) {
-    m_scale = scale;
     for (size_t i = 0; i < m_lenses.size(); i++) {
         m_lenses[i].lens.setScale(scale);
+        // m_lenses[i].position *= (scale / m_scale);
     }
+    m_scale = scale;
 }
 
 CompositeLens CompositeLensBuilder::getLens() {
@@ -76,39 +79,15 @@ CompositeLens::getBeta(Vector2D<double> theta) const {
     return beta;
 }
 
+/*
 __host__ __device__ Vector2D<float>
 CompositeLens::getAlphaf(Vector2D<float> theta) const {
     theta *= m_scale;
     Vector2D<float> alpha(0, 0);
-#ifdef __CUDA_ARCH____
-    __shared__ LensData data[length];
-    if (threadIdx.x == 0) {
-            for (int i = 0; i < length; i++)
-                    data = cur_data_ptr[i];
-    }
-    __syncthreads();
-    for (int i = 0; i < length; i++) {
-    auto movedtheta = theta - (data[i].position * m_scale);
-    alpha += data[i].lens.getAlphaf(movedtheta);
-    }
-    #else
     for (size_t i = 0; i < length; i++) {
-        /*
-        #ifdef __CUDA_ARCH____
-        __shared__ LensData data;
-        if (threadIdx.x == 0) {
-                data = cur_data_ptr[i];
-        }
-        __syncthreads();
-auto movedtheta = theta - (data.position * m_scale);
-alpha += data.lens.getAlphaf(movedtheta);
-        #else
-        */
         auto movedtheta = theta - (cur_data_ptr[i].position * m_scale);
         alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
-        // #endif
     }
-    #endif
     // theta /= m_scale;
     alpha /= m_scale;
     return alpha;
@@ -120,3 +99,4 @@ CompositeLens::getBetaf(Vector2D<float> theta) const {
     beta = theta - getAlphaf(theta) * m_Df;
     return beta;
 }
+*/

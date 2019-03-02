@@ -22,11 +22,13 @@ TEST(UtilTests, Vector2DDiv) {
     ASSERT_EQ(v.y(), 2);
 }
 
+/*
 TEST(UtilTests, Vector2DLen) {
     Vector2D<double> v2d(3, 4);
     auto len = v2d.length();
     ASSERT_EQ(len, 5);
 }
+*/
 
 TEST(UtilTests, CosmologyTest) {
     Cosmology cosm(0.7, 0.3, 0, 0.7);

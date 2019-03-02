@@ -8,22 +8,35 @@
 #endif
 #include <thrust/host_vector.h>
 
-class PlanaData {
+class PlaneData {
 public:
-	PlanaData(CompositeLens lens, double z);
+	PlaneData(CompositeLens lens, double z);
+	__device__ PlaneData() {}
 
 	CompositeLens lens;
 	double redshift;
+
+	bool operator<(const PlaneData &cmp) const {
+		return redshift < cmp.redshift;
+	}
 };
 
 class MultiplaneBuilder {
 private:
+	thrust::host_vector<PlaneData> m_data;
+	
+public:
+	MultiplaneBuilder();
+
+	void addPlane(CompositeLens &lens, double z);
 	
 };
 
 class Multiplane {
   private:
+	PlaneData *m_plane;
 
   public:
     Multiplane();
+
 };
