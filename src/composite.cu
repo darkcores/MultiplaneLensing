@@ -28,18 +28,21 @@ void CompositeLensBuilder::setSource(const double Ds, const double Dds) {
 void CompositeLensBuilder::setScale(const float scale) {
     for (size_t i = 0; i < m_lenses.size(); i++) {
         m_lenses[i].lens.setScale(scale);
-        // m_lenses[i].position *= (scale / m_scale);
+        // m_lenses[i].position /= m_scale;
+		// m_lenses[i].position *= scale;
     }
     m_scale = scale;
 }
 
 CompositeLens CompositeLensBuilder::getLens() {
+	// m_lenses.push_back(LensData());
     CompositeLens lens(m_Dd, m_Ds, m_Dds, &m_lenses[0], m_lenses.size());
     return lens;
 }
 
 CompositeLens CompositeLensBuilder::getCuLens() {
 #ifdef __CUDACC__
+	// m_lenses.push_back(LensData());
     dev_m_lenses = m_lenses;
     auto lens_ptr = thrust::raw_pointer_cast(&dev_m_lenses[0]);
 #else
@@ -59,6 +62,7 @@ CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
     m_Df = m_Dds / m_Ds;
     m_scale = scale;
     // cur_data_ptr = data_ptr;
+	m_data_ptr = data_ptr;
     length = size;
 }
 

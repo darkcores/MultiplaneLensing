@@ -16,10 +16,12 @@ class LensData {
   public:
     Plummer lens;
     Vector2D<float> position;
+    bool notlast;
     LensData(const Plummer &l, const Vector2D<float> &pos) : lens(l) {
         position = pos;
+        notlast = true;
     }
-    __device__ LensData() {}
+    __host__ __device__ LensData() { notlast = false; }
 };
 
 class CompositeLens {
@@ -28,31 +30,80 @@ class CompositeLens {
     double m_D;
     float m_Df;
     float m_scale;
-    LensData *cur_data_ptr;
-    size_t length;
+    LensData *m_data_ptr;
+    const LensData *__restrict__ cur_data_ptr;
+    int length;
 
   public:
     CompositeLens(const double Dd, const double Ds, const double Dds,
                   LensData *data_ptr, size_t size, float scale = 60);
-    __device__ CompositeLens() {}
+    __device__ CompositeLens() : cur_data_ptr(nullptr) {}
 
     __host__ __device__ Vector2D<double> getAlpha(Vector2D<double> theta) const;
-    __host__ __device__ Vector2D<float> getAlphaf(const Vector2D<float> &theta) const {
-        // theta *= m_scale;
+    __host__ __device__ Vector2D<float>
+    getAlphaf(const Vector2D<float> &theta) const {
+        auto scaledtheta = theta * m_scale;
         Vector2D<float> alpha(0, 0);
-        for (size_t i = 0; i < length; i++) {
-            auto movedtheta = (theta * m_scale) - (cur_data_ptr[i].position * m_scale);
+        for (int i = 0; i < length; i++) {
+            auto movedtheta =
+                scaledtheta - (cur_data_ptr[i].position * m_scale);
             alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
         }
+        // Some other tests with less registers but slower (in certain tests)
+        // Need to try with the rest to see how this performs
+        /*
+        auto cur_ptr = cur_data_ptr;
+        do {
+    auto movedtheta = scaledtheta - (cur_ptr->position * m_scale);
+    alpha += cur_ptr->lens.getAlphaf(movedtheta);
+                // cur_ptr += sizeof(LensData);
+                cur_ptr ++;
+        } while(cur_ptr->notlast);
+        */
+        /*
+        int i = 0;
+        while (cur_data_ptr[i].notlast) {
+    auto movedtheta = scaledtheta - (cur_data_ptr[i].position * m_scale);
+    alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
+                i++;
+        }
+*/
         // theta /= m_scale;
         alpha /= m_scale;
         return alpha;
     }
     __host__ __device__ Vector2D<double> getBeta(Vector2D<double> theta) const;
-    __host__ __device__ Vector2D<float> getBetaf(const Vector2D<float> &theta) const {
+    __host__ __device__ Vector2D<float>
+    getBetaf(const Vector2D<float> &theta) const {
         Vector2D<float> beta;
         beta = theta - getAlphaf(theta) * m_Df;
         return beta;
+    }
+
+    __host__ __device__ Vector2D<float> getBetaf(const Vector2D<float> &theta,
+                                                 const float &Ds,
+                                                 const float &Dds) const {
+        Vector2D<float> beta;
+        beta = theta - getAlphaf(theta) * (Dds / Ds);
+        return beta;
+    }
+
+    __host__ __device__ void setMasses(const double *__restrict__ masses) {
+        for (int i = 0; i < length; i++) {
+            m_data_ptr[i].lens.setMass(masses[i]);
+        }
+    }
+
+    __host__ __device__ void setDistance(const double Dd) {
+        for (int i = 0; i < length; i++) {
+            m_data_ptr[i].lens.setDistance(Dd);
+        }
+    }
+
+    __host__ __device__ void setSource(const double Ds, const double Dds) {
+        for (int i = 0; i < length; i++) {
+            m_data_ptr[i].lens.setSource(Ds, Dds);
+        }
     }
 };
 

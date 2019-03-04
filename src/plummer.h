@@ -30,9 +30,18 @@ class Plummer {
     }
 
     __host__ __device__ Vector2D<float>
-    getBetaf(const  Vector2D<float> &theta) const {
+    getBetaf(const Vector2D<float> &theta) const {
         auto beta = theta / (theta.lengthSq() + m_angularwidth2_f);
         beta *= m_4GM_s_f;
+        beta = theta - beta;
+        return beta;
+    }
+
+    __host__ __device__ Vector2D<float> getBetaf(const Vector2D<float> &theta,
+                                                 const float &Ds,
+                                                 const float &Dds) const {
+        auto beta = theta / (theta.lengthSq() + m_angularwidth2_f);
+        beta *= (Dds / Ds) * m_4GM_f;
         beta = theta - beta;
         return beta;
     }
@@ -42,23 +51,3 @@ class Plummer {
     __host__ __device__ void setScale(const float scale = 60);
     __host__ __device__ void setMass(const double m_mass);
 };
-
-/*
-class Plummerf {
-  private:
-    float m_Dd, m_D;
-        float m_mass, m_angularwidth;
-    float m_4GM_f, m_angularwidth2_f;
-
-  public:
-    __host__ __device__ Plummerf(const float Dd, const float mass,
-                                 const float angularwidth);
-
-    __host__ __device__ Vector2D<float> getAlphaf(Vector2D<float> theta) const;
-    __host__ __device__ Vector2D<float> getBetaf(Vector2D<float> theta) const;
-
-    __host__ __device__ void setMass(const float m_mass);
-    __host__ __device__ void setSource(const float Ds, const float Dds);
-    __host__ __device__ void setScale(const float scale = 60);
-};
-*/

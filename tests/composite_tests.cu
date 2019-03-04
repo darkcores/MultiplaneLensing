@@ -43,18 +43,10 @@ __global__ void betaftest(int n, const CompositeLens *const __restrict__ lens,
                           const float *__restrict__ thetax,
                           const float *__restrict__ thetay,
                           float *__restrict__ betax,
-                          float *__restrict__ betay) {
+                          float *__restrict__ betay, const float Ds, const float Dds) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    /*
-    __shared__ CompositeLens slens;
-    if (threadIdx.x == 0) {
-            slens = *lens;
-    }
-    __syncthreads();
-    */
-    // Vector2D<float> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
     Vector2D<float> vec(thetax[i], thetay[i]);
-    auto betas = lens->getBetaf(vec);
+    auto betas = lens->getBetaf(vec, Ds, Dds);
     betax[i] = betas.x();
     betay[i] = betas.y();
 }
@@ -144,6 +136,6 @@ TEST(CompositeCuTests, TestBetaF) {
 
     cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
     betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr,
-                                     by_ptr);
+                                     by_ptr, Ds, Dds);
     // thrust::host_vector<Vector2D<float>> h_betas(betas);
 }

@@ -88,7 +88,7 @@ TEST(CompositeTests, TestBetaf) {
     auto lens = lensbuilder.getLens();
     Vector2D<float> point(1 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC);
     // for (int i = 0; i < 16777216; i++) {
-    auto beta = lens.getBetaf(point);
+    auto beta = lens.getBetaf(point, Ds, Dds);
     EXPECT_LT(abs(beta.x() + 5.82627194e-06), 1e-11);
     EXPECT_LT(abs(beta.y() + 1.10613056e-05), 1e-11);
     // }
