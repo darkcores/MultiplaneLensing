@@ -68,8 +68,6 @@ TEST(CompositeCuTests, TestAlpha) {
     alphatest<<<1048576 / 256, 256>>>(1048576, l_ptr, a_ptr);
     thrust::host_vector<Vector2D<double>> h_alphas(alphas);
 
-	lensbuilder.cuFree();
-
     /*
     auto tlens = lensbuilder.getLens();
 for (int i = 0; i < 128; i += 64) {
@@ -104,8 +102,6 @@ TEST(CompositeCuTests, TestBeta) {
 
     betatest<<<1048576 / 256, 256>>>(1048576, l_ptr, b_ptr);
     thrust::host_vector<Vector2D<double>> h_betas(betas);
-
-	lensbuilder.cuFree();
 }
 
 TEST(CompositeCuTests, TestBetaF) {
@@ -142,6 +138,4 @@ TEST(CompositeCuTests, TestBetaF) {
     betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr,
                                      by_ptr, Ds, Dds);
     // thrust::host_vector<Vector2D<float>> h_betas(betas);
-
-	lensbuilder.cuFree();
 }

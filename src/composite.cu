@@ -2,6 +2,7 @@
 #include <iostream>
 
 CompositeLens CompositeLensBuilder::getCuLens() {
+	cuda = true;
 #ifdef __CUDACC__
     // m_lenses.push_back(LensData());
     // dev_m_lenses = m_lenses;

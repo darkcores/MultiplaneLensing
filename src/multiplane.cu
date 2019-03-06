@@ -5,6 +5,7 @@
 
 Multiplane MultiplaneBuilder::getCuMultiPlane() {
     prepare();
+    cuda = true;
 #ifdef __CUDACC__
     // dev_m_data = m_data;
     // dev_m_src_data = m_src_data;
@@ -14,8 +15,8 @@ Multiplane MultiplaneBuilder::getCuMultiPlane() {
     cudaMemcpy(plane_ptr, &m_data[0], sizeof(PlaneData) * m_data.size(),
                cudaMemcpyHostToDevice);
     cudaMalloc(&src_ptr, sizeof(SourcePlane) * m_src_data.size());
-    cudaMemcpy(src_ptr, &m_src_data[0],
-               sizeof(SourcePlane) * m_src_data.size(), cudaMemcpyHostToDevice);
+    cudaMemcpy(src_ptr, &m_src_data[0], sizeof(SourcePlane) * m_src_data.size(),
+               cudaMemcpyHostToDevice);
 #else
     plane_ptr = nullptr;
     src_ptr = nullptr;
@@ -24,8 +25,10 @@ Multiplane MultiplaneBuilder::getCuMultiPlane() {
 }
 
 void MultiplaneBuilder::cuFree() {
-	cudaFree(plane_ptr);
-	cudaFree(src_ptr);
+#ifdef __CUDACC__
+    cudaFree(plane_ptr);
+    cudaFree(src_ptr);
+#endif
 }
 
 uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {

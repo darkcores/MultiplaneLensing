@@ -51,6 +51,7 @@ class MultiplaneBuilder {
 	std::vector<PlaneData> m_data;
 	std::vector<SourcePlane> m_src_data;
 
+	bool cuda = false;
     PlaneData *plane_ptr;
     SourcePlane *src_ptr;
 
@@ -60,6 +61,11 @@ class MultiplaneBuilder {
 
   public:
     MultiplaneBuilder(const Cosmology cosm) : m_cosm(cosm) {}
+
+	~MultiplaneBuilder() {
+		if (cuda)
+			cuFree();
+	}
 
     void addPlane(CompositeLensBuilder *lensbuilder);
     void addSourcePlane(SourcePlane &plane);

@@ -122,8 +122,14 @@ class CompositeLensBuilder {
 	float m_redshift;
     float m_scale;
 
+	bool cuda = false;
+
   public:
     CompositeLensBuilder();
+	~CompositeLensBuilder() {
+		if (cuda)
+			cuFree();
+	}
 
     void setDistance(const double Dd);
 	void setRedshift(const float z) { m_redshift = z; }

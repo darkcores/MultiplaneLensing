@@ -54,10 +54,16 @@ class SourcePlaneBuilder {
   private:
     float m_redshift;
     std::vector<SourceData> m_points;
+    bool cuda = false;
     SourceData *ptr;
 
   public:
     SourcePlaneBuilder(const float redshift) { m_redshift = redshift; }
+
+    ~SourcePlaneBuilder() {
+        if (cuda)
+            cuFree();
+    }
 
     void addPoint(const Vector2D<float> point, const float radius) {
         m_points.push_back(SourceData(point, radius));
@@ -68,6 +74,7 @@ class SourcePlaneBuilder {
     }
 
     SourcePlane getCuPlane() {
+        cuda = true;
 #ifdef __CUDACC__
         // dev_m_points = m_points;
         // ptr = thrust::raw_pointer_cast(&dev_m_points[0]);
