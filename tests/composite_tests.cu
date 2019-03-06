@@ -68,6 +68,8 @@ TEST(CompositeCuTests, TestAlpha) {
     alphatest<<<1048576 / 256, 256>>>(1048576, l_ptr, a_ptr);
     thrust::host_vector<Vector2D<double>> h_alphas(alphas);
 
+	lensbuilder.cuFree();
+
     /*
     auto tlens = lensbuilder.getLens();
 for (int i = 0; i < 128; i += 64) {
@@ -102,6 +104,8 @@ TEST(CompositeCuTests, TestBeta) {
 
     betatest<<<1048576 / 256, 256>>>(1048576, l_ptr, b_ptr);
     thrust::host_vector<Vector2D<double>> h_betas(betas);
+
+	lensbuilder.cuFree();
 }
 
 TEST(CompositeCuTests, TestBetaF) {
@@ -122,8 +126,8 @@ TEST(CompositeCuTests, TestBetaF) {
     thrust::host_vector<float> thetax;
     thrust::host_vector<float> thetay;
     for (size_t i = 0; i < 16777216; i++) {
-        thetax.push_back((i % 7) * ANGLE_ARCSEC);
-        thetay.push_back((i % 5) * ANGLE_ARCSEC);
+        thetax.push_back((i % 17) * ANGLE_ARCSEC);
+        thetay.push_back((i % 13) * ANGLE_ARCSEC);
     }
     thrust::device_vector<float> dev_thetax(thetax);
     thrust::device_vector<float> dev_thetay(thetay);
@@ -138,4 +142,6 @@ TEST(CompositeCuTests, TestBetaF) {
     betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr,
                                      by_ptr, Ds, Dds);
     // thrust::host_vector<Vector2D<float>> h_betas(betas);
+
+	lensbuilder.cuFree();
 }

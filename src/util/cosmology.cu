@@ -69,8 +69,10 @@ Cosmology::angularDiameterDistance(double z1, double z2, int num) const {
     return result * DIST_MPC;
 }
 
+/*
 __host__ __device__ double
 Cosmology::redshiftForAngularDiameterDistance(double Dtarget, double zref,
                                               double zmax) const {
     return -1.0;
 }
+*/
