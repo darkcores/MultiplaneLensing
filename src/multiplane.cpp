@@ -18,7 +18,7 @@ void MultiplaneBuilder::prepare() {
     // Set lens distances and stuff
     size_t s = 0; // source plane index
     float z_src = m_src_data[s].redshift();
-	std::cout << "Lenses in builder " << m_builders.size() << std::endl;
+    std::cout << "Lenses in builder " << m_builders.size() << std::endl;
     for (size_t i = 0; i < m_builders.size() - 1; i++) {
         float zd = m_builders[i]->redshift();
         float zs = m_builders[i + 1]->redshift();
@@ -30,23 +30,25 @@ void MultiplaneBuilder::prepare() {
         // For each src plane before the next lens
         while (z_src < zs) {
             // Ds and Dds for this lens for the following sourceplane
-			std::cout << "Settings redshift source plane" << std::endl;
-            Ds = m_cosm.angularDiameterDistance(z_src);
-            Dds = m_cosm.angularDiameterDistance(z_src, zd);
-            m_src_data[s].setSource(Ds, Dds);
+            // std::cout << "Settings redshift source plane" << std::endl;
+            if (z_src > zd) {
+                Ds = m_cosm.angularDiameterDistance(z_src);
+                Dds = m_cosm.angularDiameterDistance(z_src, zd);
+                m_src_data[s].setSource(Ds, Dds);
+            }
             if (s < (m_src_data.size() - 1)) {
                 s++;
                 z_src = m_src_data[s].redshift();
             } else {
                 // z_src = std::numeric_limits<float>::infinity();
                 // Later lenses aren't useful anyways
-                return;
+				return;
             }
         }
     }
     // Handle leftover source plane for last lens
     while (s < m_src_data.size()) {
-		std::cout << "Settings redshift source plane" << std::endl;
+        std::cout << "Settings redshift source plane" << std::endl;
         float zs = m_builders[m_builders.size() - 1]->redshift();
         z_src = m_src_data[s].redshift();
         float Ds = m_cosm.angularDiameterDistance(z_src);
@@ -54,6 +56,10 @@ void MultiplaneBuilder::prepare() {
         m_src_data[s].setSource(Ds, Dds);
         s++;
     }
+}
+
+Multiplane MultiplaneBuilder::getMultiPlane() {
+    prepare();
 
     // Get final lenses from builders
     for (size_t i = 0; i < m_builders.size(); i++) {
@@ -61,10 +67,6 @@ void MultiplaneBuilder::prepare() {
         PlaneData plane(lens, m_builders[i]->redshift());
         m_data.push_back(plane);
     }
-}
-
-Multiplane MultiplaneBuilder::getMultiPlane() {
-    prepare();
 
     return Multiplane(m_data.size(), m_src_data.size(), &m_data[0],
                       &m_src_data[0]);

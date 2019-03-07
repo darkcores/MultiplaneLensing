@@ -42,7 +42,7 @@ class Multiplane {
     /**
      * Trace theta to source plane
      */
-    uint8_t traceTheta(Vector2D<float> theta) const;
+    __host__ __device__ uint8_t traceTheta(Vector2D<float> theta) const;
 };
 
 class MultiplaneBuilder {

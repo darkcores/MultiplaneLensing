@@ -5,6 +5,14 @@
 
 Multiplane MultiplaneBuilder::getCuMultiPlane() {
     prepare();
+
+    // Get final lenses from builders
+    for (size_t i = 0; i < m_builders.size(); i++) {
+        auto lens = m_builders[i]->getCuLens();
+        PlaneData plane(lens, m_builders[i]->redshift());
+        m_data.push_back(plane);
+    }
+
     cuda = true;
 #ifdef __CUDACC__
     // dev_m_data = m_data;
@@ -35,16 +43,28 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
     int i_src = 0;
     uint8_t pixel = 0;
     float z_src = m_src_plane_ptr[i_src].redshift();
+    // Draw before any lenses first (TODO)
+    float zs = z_src + 1;
+    if (m_plane_length > 0)
+        zs = m_plane_ptr[0].redshift;
+    while (z_src < zs) {
+        // Do source plane(s)
+        uint8_t p = m_src_plane_ptr[i_src].check_hit(theta);
+        if (p != 0) {
+            // TODO return here or add sources?
+            return p;
+        }
+        i_src++;
+        if (i_src == m_src_length) {
+            // No need to continue now
+            return pixel;
+        }
+        z_src = m_src_plane_ptr[i_src].redshift();
+    }
+
     // Go over each lensplane, and, if we encounter it, source plane.
-#ifndef __CUDA_ARCH__
-    std::cout << "Lenses: " << m_plane_length << std::endl;
-#endif
     for (int i = 0; i < m_plane_length; i++) {
-        float zs = m_plane_ptr[i].redshift;
-#ifndef __CUDA_ARCH__
-        std::cout << "Theta: " << theta.x() << "," << theta.y() << std::endl;
-        std::cout << "Redshifts: " << zs << " src: " << z_src << std::endl;
-#endif
+        zs = m_plane_ptr[i].redshift;
         // TODO what if sourceplane is before lens
         while (z_src < zs) {
             // Do source plane(s)
@@ -52,7 +72,7 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
             float Ds = m_src_plane_ptr[i_src].ds();
             float Dds = m_src_plane_ptr[i_src].dds();
             Vector2D<float> s_theta =
-                m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
+                m_plane_ptr[i - 1].lens.getBetaf(theta, Ds, Dds);
             uint8_t p = m_src_plane_ptr[i_src].check_hit(s_theta);
             if (p != 0) {
                 // TODO return here or add sources?
@@ -66,15 +86,8 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
             z_src = m_src_plane_ptr[i_src].redshift();
         }
         if (i < (m_plane_length - 1)) {
-#ifndef __CUDA_ARCH__
-            std::cout << "Theta updated " << std::endl;
-#endif
             auto beta = m_plane_ptr[i].lens.getBetaf(theta);
             theta = beta;
-#ifndef __CUDA_ARCH__
-            std::cout << "New theta: " << beta.x() << "," << beta.y()
-                      << std::endl;
-#endif
         }
     }
     // Handle remaining source planes

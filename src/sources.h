@@ -10,13 +10,22 @@ class SourceData {
   public:
     Vector2D<float> position;
     float radius;
-    uint8_t color;
+    float color;
 
     SourceData(const Vector2D<float> pos, const float r,
                const uint8_t c = 255) {
         position = pos;
         radius = r;
         color = c;
+    }
+
+    __host__ __device__ uint8_t check_hit(const Vector2D<float> &theta) const {
+        float diff = sqrt((theta - position).lengthSq());
+        diff = fabs(diff);
+        if (diff < radius) {
+            return color;
+        }
+        return 0;
     }
 };
 
@@ -47,7 +56,15 @@ class SourcePlane {
         return m_redshift < cmp.redshift();
     }
 
-    __host__ __device__ uint8_t check_hit(const Vector2D<float> &theta) const;
+    __host__ __device__ uint8_t check_hit(const Vector2D<float> &theta) const {
+        // Check for each point |diff| < radius
+        for (int i = 0; i < m_points_length; i++) {
+            uint8_t p = m_points[i].check_hit(theta);
+			if (p > 0)
+				return p;
+        }
+        return 0;
+    }
 };
 
 class SourcePlaneBuilder {
@@ -65,8 +82,9 @@ class SourcePlaneBuilder {
             cuFree();
     }
 
-    void addPoint(const Vector2D<float> point, const float radius) {
-        m_points.push_back(SourceData(point, radius));
+    void addPoint(const Vector2D<float> point, const float radius,
+                  const uint8_t color = 255) {
+        m_points.push_back(SourceData(point, radius, color));
     }
 
     SourcePlane getPlane() const {

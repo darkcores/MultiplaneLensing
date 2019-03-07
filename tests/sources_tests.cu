@@ -5,9 +5,7 @@
 #include <util/constants.h>
 #include <util/cosmology.h>
 
-#include <fstream>
-#include <iostream>
-#include <vector>
+#include <thrust/device_vector.h>
 
 CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
                                 double angularwidth, double mass) {
@@ -47,7 +45,19 @@ std::vector<Vector2D<float>> thetaGrid(Vector2D<float> topleft,
     return points;
 }
 
-TEST(MultiplaneTests, TestBetaf) {
+__global__ void traceThetaKernel(const int n, const Multiplane mp,
+                                 const float *__restrict__ xpoints,
+                                 const float *__restrict__ ypoints,
+                                 uint8_t *__restrict__ output) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        Vector2D<float> vec(xpoints[i], ypoints[i]);
+        uint8_t p = mp.traceTheta(vec);
+        output[i] = p;
+    }
+}
+
+TEST(CuMultiplaneTests, TestBetaf) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d1 = 0.4;
     double z_d2 = 0.8;
@@ -59,11 +69,9 @@ TEST(MultiplaneTests, TestBetaf) {
     auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder.setRedshift(z_d1);
-    // auto lens1 = lensbuilder.getLens();
     auto lensbuilder2 = createGrid(Dd2, 6, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                    5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder2.setRedshift(z_d2);
-    // auto lens2 = lensbuilder.getLens();
 
     MultiplaneBuilder planebuilder(cosm);
     planebuilder.addPlane(&lensbuilder);
@@ -76,7 +84,7 @@ TEST(MultiplaneTests, TestBetaf) {
                            1 * ANGLE_ARCSEC);
     sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
                            1 * ANGLE_ARCSEC);
-    auto sourceplane = sourcebuilder.getPlane();
+    auto sourceplane = sourcebuilder.getCuPlane();
     planebuilder.addSourcePlane(sourceplane);
 
     SourcePlaneBuilder sourcebuilder2(z_s2);
@@ -89,39 +97,41 @@ TEST(MultiplaneTests, TestBetaf) {
     sourcebuilder2.addPoint(
         Vector2D<float>(-3 * ANGLE_ARCSEC, -4 * ANGLE_ARCSEC), 1 * ANGLE_ARCSEC,
         128);
-    auto sourceplane2 = sourcebuilder2.getPlane();
+    auto sourceplane2 = sourcebuilder2.getCuPlane();
     planebuilder.addSourcePlane(sourceplane2);
 
-    // Set masses on 1 lens
-    std::vector<double> masses;
-    for (int i = 0; i < 9; i++) {
-        masses.push_back(MASS_SOLAR * 1e13 * (i / 3));
-    }
-    lensbuilder.getLens().setMasses(&masses[0]);
+    auto multiplane = planebuilder.getCuMultiPlane();
+    // Multiplane *mp;
+    // cudaMalloc(&mp, sizeof(Multiplane));
+    // cudaMemcpy(mp, &multiplane, sizeof(Multiplane), cudaMemcpyHostToDevice);
 
-    auto multiplane = planebuilder.getMultiPlane();
-
-    std::cout << "Setup done" << std::endl;
-
-    Vector2D<float> point(1 * ANGLE_ARCSEC, 1 * ANGLE_ARCSEC);
-    auto pixel = multiplane.traceTheta(point);
-    ASSERT_EQ(pixel, 0);
-
+    // Points and layout for cuda
     auto points =
         thetaGrid(Vector2D<float>(-60 * ANGLE_ARCSEC, 60 * ANGLE_ARCSEC),
                   Vector2D<float>(60 * ANGLE_ARCSEC, -60 * ANGLE_ARCSEC));
-
-    std::ofstream testimg("testimage.dat", std::ios::binary);
+    std::vector<float> xpoints;
+    std::vector<float> ypoints;
     for (auto &p : points) {
-        pixel = multiplane.traceTheta(p);
-        testimg.write((char *)&pixel, sizeof(uint8_t));
+        xpoints.push_back(p.x());
+        ypoints.push_back(p.y());
     }
+    thrust::device_vector<float> dev_x(xpoints);
+    thrust::device_vector<float> dev_y(ypoints);
+    float *dev_x_ptr = thrust::raw_pointer_cast(&dev_x[0]);
+    float *dev_y_ptr = thrust::raw_pointer_cast(&dev_y[0]);
 
-    // for (int i = 0; i < 16777216; i++) {
-    // auto beta = lens.getBetaf(point, Ds, Dds);
-    // EXPECT_LT(abs(beta.x() + 5.82627194e-06), 1e-11);
-    // EXPECT_LT(abs(beta.y() + 1.10613056e-05), 1e-11);
-    // }
-    // EXPECT_EQ(beta.x(), -5.82627194e-06);
-    // EXPECT_EQ(beta.y(), -1.10613056e-05);
+    auto size = xpoints.size();
+    thrust::device_vector<uint8_t> dev_o(size);
+    uint8_t *dev_o_ptr = thrust::raw_pointer_cast(&dev_o[0]);
+
+    std::cout << "Setup done, starting kernel" << std::endl;
+    // size_t newHeapSize = 1024 * 1000 * 32;
+    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, newHeapSize);
+    traceThetaKernel<<<size / 64, 64>>>(size, multiplane, dev_x_ptr, dev_y_ptr,
+                                        dev_o_ptr);
+
+	std::cout << "Kernel: " << cudaGetErrorString(cudaPeekAtLastError()) << std::endl;
+	cudaDeviceSynchronize();
+    std::cout << "Kernel done" << std::endl;
+    thrust::host_vector<uint8_t> output = dev_o;
 }

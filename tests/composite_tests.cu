@@ -121,21 +121,21 @@ TEST(CompositeCuTests, TestBetaF) {
 
     thrust::host_vector<float> thetax;
     thrust::host_vector<float> thetay;
-    for (size_t i = 0; i < 16777216; i++) {
+    for (size_t i = 0; i < 1048576; i++) {
         thetax.push_back((i % 17) * ANGLE_ARCSEC);
         thetay.push_back((i % 13) * ANGLE_ARCSEC);
     }
     thrust::device_vector<float> dev_thetax(thetax);
     thrust::device_vector<float> dev_thetay(thetay);
-    thrust::device_vector<float> betax(16777216);
-    thrust::device_vector<float> betay(16777216);
+    thrust::device_vector<float> betax(1048576);
+    thrust::device_vector<float> betay(1048576);
     auto bx_ptr = thrust::raw_pointer_cast(&betax[0]);
     auto by_ptr = thrust::raw_pointer_cast(&betay[0]);
     auto tx_ptr = thrust::raw_pointer_cast(&dev_thetax[0]);
     auto ty_ptr = thrust::raw_pointer_cast(&dev_thetay[0]);
 
     cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-    betaftest<<<16777216 / 64, 64>>>(16777216, l_ptr, tx_ptr, tx_ptr, bx_ptr,
+    betaftest<<<1048576 / 64, 64>>>(1048576, l_ptr, tx_ptr, tx_ptr, bx_ptr,
                                      by_ptr, Ds, Dds);
     // thrust::host_vector<Vector2D<float>> h_betas(betas);
 }
