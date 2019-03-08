@@ -18,10 +18,9 @@ CompositeLens CompositeLensBuilder::getCuLens() {
         std::terminate();
     }
 #else
-    CompositeLens *lens_ptr = 0;
+    CompositeLens *lens_ptr = nullptr;
 #endif
-    CompositeLens lens(m_Dd, m_Ds, m_Dds, lens_ptr, m_lenses.size(), m_scale);
-    return lens;
+    return CompositeLens(m_Dd, m_Ds, m_Dds, lens_ptr, size, m_scale);
 }
 
 void CompositeLensBuilder::cuFree() {

@@ -51,7 +51,7 @@ TEST(MultiplaneTests, TestBetaf) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d1 = 0.4;
     double z_d2 = 0.8;
-    double z_s = 1.0;
+    double z_s = 1.2;
     double z_s2 = 0.6;
     auto Dd1 = cosm.angularDiameterDistance(z_d1);
     auto Dd2 = cosm.angularDiameterDistance(z_d2);
@@ -70,12 +70,12 @@ TEST(MultiplaneTests, TestBetaf) {
     planebuilder.addPlane(&lensbuilder2);
 
     SourcePlaneBuilder sourcebuilder(z_s);
-    sourcebuilder.addPoint(Vector2D<float>(5 * ANGLE_ARCSEC, 6 * ANGLE_ARCSEC),
-                           1 * ANGLE_ARCSEC);
-    sourcebuilder.addPoint(Vector2D<float>(-3 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC),
-                           1 * ANGLE_ARCSEC);
     sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
                            1 * ANGLE_ARCSEC);
+    // sourcebuilder.addPoint(Vector2D<float>(-3 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC),
+	//                       1 * ANGLE_ARCSEC);
+    // sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+    //                       1 * ANGLE_ARCSEC);
     auto sourceplane = sourcebuilder.getPlane();
     planebuilder.addSourcePlane(sourceplane);
 
@@ -90,14 +90,16 @@ TEST(MultiplaneTests, TestBetaf) {
         Vector2D<float>(-3 * ANGLE_ARCSEC, -4 * ANGLE_ARCSEC), 1 * ANGLE_ARCSEC,
         128);
     auto sourceplane2 = sourcebuilder2.getPlane();
-    planebuilder.addSourcePlane(sourceplane2);
+    // planebuilder.addSourcePlane(sourceplane2);
 
     // Set masses on 1 lens
+	/*
     std::vector<double> masses;
     for (int i = 0; i < 9; i++) {
         masses.push_back(MASS_SOLAR * 1e13 * (i / 3));
     }
     lensbuilder.getLens().setMasses(&masses[0]);
+	*/
 
     auto multiplane = planebuilder.getMultiPlane();
 
@@ -108,8 +110,8 @@ TEST(MultiplaneTests, TestBetaf) {
     ASSERT_EQ(pixel, 0);
 
     auto points =
-        thetaGrid(Vector2D<float>(-60 * ANGLE_ARCSEC, 60 * ANGLE_ARCSEC),
-                  Vector2D<float>(60 * ANGLE_ARCSEC, -60 * ANGLE_ARCSEC));
+        thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
+                  Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC));
 
     std::ofstream testimg("testimage.dat", std::ios::binary);
     for (auto &p : points) {

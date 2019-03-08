@@ -14,7 +14,7 @@ class PlaneData {
 
     PlaneData(CompositeLens &l, float z) : lens(l) { redshift = z; }
 
-    __device__ PlaneData() {}
+	//  __device__ PlaneData() {}
 
     bool operator<(const PlaneData &cmp) const {
         return redshift < cmp.redshift;

@@ -10,7 +10,7 @@ class SourceData {
   public:
     Vector2D<float> position;
     float radius;
-    float color;
+    uint8_t color;
 
     SourceData(const Vector2D<float> pos, const float r,
                const uint8_t c = 255) {
@@ -22,6 +22,9 @@ class SourceData {
     __host__ __device__ uint8_t check_hit(const Vector2D<float> &theta) const {
         float diff = sqrt((theta - position).lengthSq());
         diff = fabs(diff);
+		#ifdef __CUDACC__
+		// printf("Point diff: %f\n", diff);
+		#endif
         if (diff < radius) {
             return color;
         }
@@ -58,6 +61,9 @@ class SourcePlane {
 
     __host__ __device__ uint8_t check_hit(const Vector2D<float> &theta) const {
         // Check for each point |diff| < radius
+		#ifdef __CUDACC__
+		// printf("Points in plane: %d\n", m_points_length);
+		#endif
         for (int i = 0; i < m_points_length; i++) {
             uint8_t p = m_points[i].check_hit(theta);
 			if (p > 0)

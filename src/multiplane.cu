@@ -40,6 +40,7 @@ void MultiplaneBuilder::cuFree() {
 }
 
 uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
+	// printf("Theta: (%f, %f)\n", theta.x(), theta.y());
     int i_src = 0;
     uint8_t pixel = 0;
     float z_src = m_src_plane_ptr[i_src].redshift();
@@ -65,6 +66,15 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
     // Go over each lensplane, and, if we encounter it, source plane.
     for (int i = 0; i < m_plane_length; i++) {
         zs = m_plane_ptr[i].redshift;
+		/*
+		#ifdef __CUDA_ARCH__
+		if (threadIdx.x < 3) {
+			printf("Theta %d: (%f; %f)\n", threadIdx.x, theta.x(), theta.y());
+		}
+		#else 
+		printf("Theta: (%f; %f)\n", theta.x(), theta.y());
+		#endif
+		*/
         // TODO what if sourceplane is before lens
         while (z_src < zs) {
             // Do source plane(s)
@@ -74,6 +84,15 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
             Vector2D<float> s_theta =
                 m_plane_ptr[i - 1].lens.getBetaf(theta, Ds, Dds);
             uint8_t p = m_src_plane_ptr[i_src].check_hit(s_theta);
+			/*
+#ifdef __CUDA_ARCH__
+			if (threadIdx.x < 3) {
+				printf("S Theta %d: (%f; %f)\n", threadIdx.x, theta.x(), theta.y());
+			}
+#else 
+			printf("S Theta: (%f; %f)\n", theta.x(), theta.y());
+#endif
+			*/
             if (p != 0) {
                 // TODO return here or add sources?
                 return p;

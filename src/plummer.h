@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdio>
 #include "util/vector2d.h"
 // CUDA includes
 #include <cuda_runtime_api.h>
@@ -24,6 +25,7 @@ class Plummer {
 
     __host__ __device__ Vector2D<float>
     getAlphaf(const Vector2D<float> &theta) const {
+		// printf("Scale factor plummer %f\n", m_scale);
         auto alpha = theta / (theta.lengthSq() + m_angularwidth2_f);
         alpha *= m_4GM_f;
         return alpha;
@@ -48,6 +50,6 @@ class Plummer {
 
     __host__ __device__ void setDistance(const double Dd);
     __host__ __device__ void setSource(const double Ds, const double Dds);
-    __host__ __device__ void setScale(const float scale = 60);
+    __host__ __device__ void setScale(const float scale);
     __host__ __device__ void setMass(const double m_mass);
 };

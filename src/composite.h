@@ -35,19 +35,20 @@ class CompositeLens {
   public:
     CompositeLens(const double Dd, const double Ds, const double Dds,
                   LensData *data_ptr, size_t size, float scale = 60);
-    __device__ CompositeLens() : cur_data_ptr(nullptr) {}
+    // __device__ CompositeLens() : cur_data_ptr(nullptr) {}
 
     __host__ __device__ float distance() const { return m_Dd; }
 
     __host__ __device__ Vector2D<double> getAlpha(Vector2D<double> theta) const;
     __host__ __device__ Vector2D<float>
     getAlphaf(const Vector2D<float> &theta) const {
-        auto scaledtheta = theta * m_scale;
+        // auto scaledtheta = theta * m_scale;
+		// printf("Scale factor %f\n", m_scale);
         Vector2D<float> alpha(0, 0);
         for (int i = 0; i < length; i++) {
             auto movedtheta =
-                scaledtheta - (cur_data_ptr[i].position * m_scale);
-            alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
+                theta - (cur_data_ptr[i].position);
+            alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta * m_scale);
         }
         // Some other tests with less registers but slower (in certain tests)
         // Need to try with the rest to see how this performs
@@ -125,7 +126,7 @@ class CompositeLensBuilder {
 	bool cuda = false;
 
   public:
-    CompositeLensBuilder();
+    CompositeLensBuilder() { m_scale = 60; }
 	~CompositeLensBuilder() {
 		if (cuda)
 			cuFree();
@@ -134,7 +135,7 @@ class CompositeLensBuilder {
     void setDistance(const double Dd);
 	void setRedshift(const float z) { m_redshift = z; }
     void setSource(const double Ds, const double Dds);
-    void setScale(const float scale = 1);
+    void setScale(const float scale);
 	float redshift() const { return m_redshift; }
 
     void addLens(Plummer &lens, Vector2D<float> position);

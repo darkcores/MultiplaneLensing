@@ -1,11 +1,8 @@
 #include "composite.h"
 #include <iostream>
 
-CompositeLensBuilder::CompositeLensBuilder() {
-	m_scale = 1;
-}
-
 void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
+	lens.setScale(m_scale);
     m_lenses.push_back(LensData(lens, position));
 }
 
@@ -38,6 +35,6 @@ void CompositeLensBuilder::setScale(const float scale) {
 
 CompositeLens CompositeLensBuilder::getLens() {
 	// m_lenses.push_back(LensData());
-    CompositeLens lens(m_Dd, m_Ds, m_Dds, &m_lenses[0], m_lenses.size());
+    CompositeLens lens(m_Dd, m_Ds, m_Dds, &m_lenses[0], m_lenses.size(), m_scale);
     return lens;
 }

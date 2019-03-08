@@ -85,10 +85,12 @@ TEST(CompositeTests, TestBetaf) {
     auto Dds = cosm.angularDiameterDistance(z_d, z_s);
     auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
+	lensbuilder.setScale(30);
+	lensbuilder.setSource(Ds, Dds);
     auto lens = lensbuilder.getLens();
     Vector2D<float> point(1 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC);
     // for (int i = 0; i < 16777216; i++) {
-    auto beta = lens.getBetaf(point, Ds, Dds);
+    auto beta = lens.getBetaf(point);
     EXPECT_LT(abs(beta.x() + 5.82627194e-06), 1e-11);
     EXPECT_LT(abs(beta.y() + 1.10613056e-05), 1e-11);
     // }

@@ -12,10 +12,10 @@ __host__ __device__ Plummer::Plummer(const double Dd, const double mass,
     m_Dd = Dd;
     m_Ds = 0;
     m_Dds = 0;
-    m_scale = 0;
+    m_scale = 1;
     // m_angularpos = angularposition;
     m_4GM = (4 * CONST_G * m_mass) / (SPEED_C * SPEED_C * m_Dd);
-    setScale();
+    setScale(1);
 }
 
 __host__ __device__ Vector2D<double>
@@ -55,7 +55,7 @@ __host__ __device__ void Plummer::setDistance(const double Dd) {
     m_Dd = Dd;
     m_4GM = (4 * CONST_G * m_mass) / (SPEED_C * SPEED_C * m_Dd);
     m_4GM_s = (m_Dds / m_Ds) * m_4GM;
-    setSource(m_Dd, m_Dds);
+    setScale(m_scale);
 }
 
 __host__ __device__ void Plummer::setSource(const double Ds, const double Dds) {
