@@ -3,3 +3,5 @@
 Here we try to accellerate plummer lenses with cuda.
 
 The current approach is to all calculations \theta and \alpha / \beta.
+
+[[./multiplane_comparison.png]]
