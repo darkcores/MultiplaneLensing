@@ -58,6 +58,17 @@ __global__ void traceThetaKernel(const int n, const Multiplane mp,
     }
 }
 
+/**
+ * Where n is the number of masses / lenses and plane the lensplane.
+ */
+__global__ void updateMassesKernel(const int n, const int plane, Multiplane mp,
+                                   const float *masses) {
+
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < n)
+		mp.updateLensMasses(plane, i, masses);
+}
+
 TEST(CuMultiplaneTests, TestBetafUberKernel) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d1 = 0.4;
@@ -67,14 +78,16 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     auto Dd1 = cosm.angularDiameterDistance(z_d1);
     auto Dd2 = cosm.angularDiameterDistance(z_d2);
 
-    auto lensbuilder = createGrid(Dd1, 100, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    auto lensbuilder =
+        createGrid(Dd1, 20, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder.setRedshift(z_d1);
-	lensbuilder.setScale(10);
-    auto lensbuilder2 = createGrid(Dd2, 100, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder.setScale(10);
+    auto lensbuilder2 =
+        createGrid(Dd2, 20, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder2.setRedshift(z_d2);
-	lensbuilder2.setScale(10);
+    lensbuilder2.setScale(10);
 
     MultiplaneBuilder planebuilder(cosm);
     planebuilder.addPlane(&lensbuilder);
@@ -127,11 +140,14 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     thrust::device_vector<uint8_t> dev_o(size);
     uint8_t *dev_o_ptr = thrust::raw_pointer_cast(&dev_o[0]);
 
+	// Might give a small performance boost
+	// cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
+
     std::cout << "Setup done, starting kernel" << std::endl;
     // size_t newHeapSize = 1024 * 1000 * 32;
     // cudaDeviceSetLimit(cudaLimitMallocHeapSize, newHeapSize);
-    traceThetaKernel<<<(size / 64) + 1, 64>>>(size, multiplane, dev_x_ptr, dev_y_ptr,
-                                        dev_o_ptr);
+    traceThetaKernel<<<(size / 256) + 1, 256>>>(size, multiplane, dev_x_ptr,
+                                              dev_y_ptr, dev_o_ptr);
 
     std::cout << "Kernel: " << cudaGetErrorString(cudaPeekAtLastError())
               << std::endl;

@@ -91,11 +91,15 @@ class CompositeLens {
         return beta;
     }
 
-    __host__ __device__ void setMasses(const double *__restrict__ masses) {
+    __host__ void setMasses(const double *__restrict__ masses) {
         for (int i = 0; i < length; i++) {
             m_data_ptr[i].lens.setMass(masses[i]);
         }
     }
+
+	__device__ void setMass(const int i, const float mass) {
+		m_data_ptr[i].lens.setMass(mass);
+	}
 
 	/*
     __host__ __device__ void setDistance(const double Dd) {

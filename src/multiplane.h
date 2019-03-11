@@ -25,6 +25,7 @@ class Multiplane {
   private:
     const PlaneData *__restrict__ m_plane_ptr;
     const SourcePlane *__restrict__ m_src_plane_ptr;
+	PlaneData *m_plane_data;
     const int m_plane_length;
     const int m_src_length;
 
@@ -35,14 +36,21 @@ class Multiplane {
     Multiplane(int plane_length, int src_length, PlaneData *plane_ptr,
                SourcePlane *src_plane_ptr)
         : m_plane_ptr(plane_ptr), m_src_plane_ptr(src_plane_ptr),
-          m_plane_length(plane_length), m_src_length(src_length) {}
-
-    void getImage() const;
+          m_plane_length(plane_length), m_src_length(src_length) {
+		m_plane_data = plane_ptr;
+	}
 
     /**
      * Trace theta to source plane
      */
     __host__ __device__ uint8_t traceTheta(Vector2D<float> theta) const;
+
+	/**
+	 * Update lens masses (GPU only)
+	 */
+	__device__ void updateLensMasses(const int dim, const int i, const float *masses) {
+		m_plane_data[dim].lens.setMass(i, masses[i]);
+	}
 };
 
 class MultiplaneBuilder {
