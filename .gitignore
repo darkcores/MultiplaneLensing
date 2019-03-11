@@ -7,3 +7,10 @@ Testing/
 *.a
 bin/
 lib/
+doc/
+*.bbl
+compile_commands.json
+*.dat
+*.raw
+.cproject
+.project

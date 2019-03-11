@@ -4,12 +4,24 @@
 // CUDA includes
 #include <cuda_runtime_api.h>
 
+/**
+ * Vector2D template class.
+ */
 template <typename T> class Vector2D {
   private:
     T m_x, m_y;
 
   public:
+	/**
+	 * Create a new empty Vector2D object.
+	 */
     __host__ __device__ Vector2D() {}
+	/**
+	 * Create a new empty Vector2D object.
+	 *
+	 * @param x X component.
+	 * @param y Y component.
+	 */
     __host__ __device__ Vector2D(const T &__restrict__ x,
                                  const T &__restrict__ y) {
         m_x = x;
@@ -58,7 +70,6 @@ template <typename T> class Vector2D {
     __host__ __device__ bool operator==(const Vector2D<T> &cmp) const {
         return (m_x == cmp.x() && m_y == cmp.y());
     }
-
     __host__ __device__ Vector2D<T> pow(const int exp) const {
         Vector2D<T> x(pow(m_x, exp), pow(m_y, exp));
         return x;
@@ -82,5 +93,10 @@ __host__ __device__ T length() const {
 }
     */
 
+	/**
+	 * Get Length squared.
+	 *
+	 * @returns length.
+	 */
     __host__ __device__ T lengthSq() const { return m_x * m_x + m_y * m_y; }
 };
