@@ -67,11 +67,11 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     auto Dd1 = cosm.angularDiameterDistance(z_d1);
     auto Dd2 = cosm.angularDiameterDistance(z_d2);
 
-    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+    auto lensbuilder = createGrid(Dd1, 100, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder.setRedshift(z_d1);
 	lensbuilder.setScale(10);
-    auto lensbuilder2 = createGrid(Dd2, 6, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+    auto lensbuilder2 = createGrid(Dd2, 100, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                                    5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder2.setRedshift(z_d2);
 	lensbuilder2.setScale(10);

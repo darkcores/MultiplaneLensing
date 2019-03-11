@@ -2,6 +2,62 @@
 
 Here we try to accellerate plummer lenses with cuda.
 
-The current approach is to all calculations \theta and \alpha / \beta.
+* Comparison sample GRALE2
 
+#+CAPTION: Comparison, no intensity in cuda example
 [[./multiplane_comparison.png]]
+
+* Implementation
+
+A short explanation of this implementation.
+
+** Lenses
+
+*** Plummer lens
+
+	Simple lens model, we don't do a lot of special things here.
+    
+	$$ \Sigma(\vec{\theta}) = \frac{M}{\pi
+	D_d^2}\frac{\theta_P^2}{(\theta^2 + \theta_P^2)^2} $$
+
+	$$ \vec{\hat{\alpha}}(\vec{\theta}) = \frac{4GM}{c^2
+	D_d}\frac{\vec{\theta}}{\theta^2+\theta_P^2} $$
+
+	$$\vec{\beta} = \vec{\theta} - \frac{D_{ds}}{D_s}\frac{4GM}{c^2
+	D_d}\frac{\vec{\theta}} {\theta^2+\theta_P^2} $$
+
+*** Composite lens
+
+	Unfortunately we can't really use inheritance, but some functions
+	are very similar to the Plummer lens. We prefer having constant
+	size objects for copying to and from a gpu.
+
+	$$ \vec{\hat{\alpha}}(\vec{\theta}) = \sum_i^N
+	\vec{\hat{\alpha}}_i(\vec{\theta})$$
+	
+	Use =getCuLens()= to get a lens for use with cuda instead of
+	=getLens()=. We use a builder class because we need to copy a
+	unknown vector to a device.
+
+*** Multiplane
+	
+	We use a similar builder model to create a multiplane object. The
+	=getLens()= functions also calls a =prepare()= function to sort
+	planes and calculate angular diameter distances for redshifts with
+	each object. These values =Ds= and =Dds= are set in the plummer
+	class, for source planes they are calculated for the last lens but
+	put in the source class.
+	
+	#+CAPTION: traceTheta pseudocode
+	#+BEGIN_SRC 
+	Draw each source plane with redshift < lens[0].redshift directly
+	for each lens {
+	    for each source with redshift before next lens {
+		    draw source with current lens
+			s_theta = currentlens.getBeta(theta, src.Ds, src.Dds)
+			if hit return pixel(s_theta)
+		}
+		theta = currentlens.getBeta(theta)
+	}
+	Draw remaining source planes with last lens
+	#+END_SRC

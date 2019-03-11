@@ -13,13 +13,15 @@ class LensData {
   public:
     Plummer lens;
     Vector2D<float> position;
-    bool notlast;
+    // bool notlast;
     LensData(const Plummer &l, const Vector2D<float> &pos) {
 		lens = l;
         position = pos;
-        notlast = true;
+        // notlast = true;
     }
-    __host__ __device__ LensData() { notlast = false; }
+    __host__ __device__ LensData() {
+		// notlast = false;
+	}
 };
 
 class CompositeLens {

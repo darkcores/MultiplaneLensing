@@ -42,7 +42,7 @@ void MultiplaneBuilder::cuFree() {
 uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
 	// printf("Theta: (%f, %f)\n", theta.x(), theta.y());
     int i_src = 0;
-    uint8_t pixel = 0;
+    const uint8_t pixel = 0;
     float z_src = m_src_plane_ptr[i_src].redshift();
     // Draw before any lenses first (TODO)
     float zs = z_src + 1;
