@@ -174,7 +174,7 @@ class CompositeLens {
 	 * @param i Sublens index.
 	 * @param mass Mass for sublens.
 	 */
-	__device__ void setMass(const int i, const float mass) {
+	__device__ void setMass(const int i, const double mass) {
 		m_data_ptr[i].lens.setMass(mass);
 	}
 

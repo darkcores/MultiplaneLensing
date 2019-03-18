@@ -74,6 +74,7 @@ __host__ __device__ void Plummer::setScale(const float scale) {
 
 __host__ __device__ void Plummer::setMass(const double mass) {
     m_mass = mass;
+	// printf("Setting mass on lens: %f\n", mass);
     // TODO if this is slow optimize calculations
     setDistance(m_Dd);
 }

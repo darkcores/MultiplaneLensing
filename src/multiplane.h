@@ -76,7 +76,7 @@ class Multiplane {
 	 * @param i Sublens index.
 	 * @param masses Masses for LensPlane.
 	 */
-	__device__ void updateLensMasses(const int dim, const int i, const float *masses) {
+	__device__ void updateLensMasses(const int dim, const int i, const double *masses) {
 		m_plane_data[dim].lens.setMass(i, masses[i]);
 	}
 };

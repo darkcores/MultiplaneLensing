@@ -62,11 +62,11 @@ __global__ void traceThetaKernel(const int n, const Multiplane mp,
  * Where n is the number of masses / lenses and plane the lensplane.
  */
 __global__ void updateMassesKernel(const int n, const int plane, Multiplane mp,
-                                   const float *masses) {
+                                   const double *masses) {
 
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < n)
-		mp.updateLensMasses(plane, i, masses);
+    if (i < n)
+        mp.updateLensMasses(plane, i, masses);
 }
 
 TEST(CuMultiplaneTests, TestBetafUberKernel) {
@@ -78,11 +78,10 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     auto Dd1 = cosm.angularDiameterDistance(z_d1);
     auto Dd2 = cosm.angularDiameterDistance(z_d2);
 
-    auto lensbuilder =
-        createGrid(Dd1, 20, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     lensbuilder.setRedshift(z_d1);
-    lensbuilder.setScale(10);
+    lensbuilder.setScale(6);
     auto lensbuilder2 =
         createGrid(Dd2, 20, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
                    5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
@@ -140,14 +139,14 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     thrust::device_vector<uint8_t> dev_o(size);
     uint8_t *dev_o_ptr = thrust::raw_pointer_cast(&dev_o[0]);
 
-	// Might give a small performance boost
-	// cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
+    // Might give a small performance boost
+    // cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 
     std::cout << "Setup done, starting kernel" << std::endl;
     // size_t newHeapSize = 1024 * 1000 * 32;
     // cudaDeviceSetLimit(cudaLimitMallocHeapSize, newHeapSize);
     traceThetaKernel<<<(size / 256) + 1, 256>>>(size, multiplane, dev_x_ptr,
-                                              dev_y_ptr, dev_o_ptr);
+                                                dev_y_ptr, dev_o_ptr);
 
     std::cout << "Kernel: " << cudaGetErrorString(cudaPeekAtLastError())
               << std::endl;
@@ -160,4 +159,64 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     testimg.close();
 }
 
-TEST(CuMultiplaneTests, TestBetafMultiKernel) {}
+TEST(CuMultiplaneTests, TestMassesUpdate) {
+    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    double z_d1 = 0.4;
+    auto Dd1 = cosm.angularDiameterDistance(z_d1);
+
+    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder.setRedshift(z_d1);
+    lensbuilder.setScale(10);
+
+    SourcePlaneBuilder sourcebuilder(1.0);
+    sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    sourcebuilder.addPoint(Vector2D<float>(-3 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+
+    MultiplaneBuilder planebuilder(cosm);
+    planebuilder.addPlane(&lensbuilder);
+    auto sp = sourcebuilder.getCuPlane();
+    planebuilder.addSourcePlane(sp);
+    auto multiplane = planebuilder.getCuMultiPlane();
+
+    std::vector<double> masses;
+    for (int i = 0; i < 9; i++) {
+        masses.push_back(MASS_SOLAR * 1e13 * (i / 3));
+        // std::cout << "MASS: " << i << ": " << masses[i] << std::endl;
+    }
+    thrust::device_vector<double> dev_masses(masses);
+    double *d_mass = thrust::raw_pointer_cast(&dev_masses[0]);
+
+    updateMassesKernel<<<1, 32>>>(9, 0, multiplane, d_mass);
+
+    auto points =
+        thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
+                  Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC));
+    thrust::host_vector<float> xpoints;
+    thrust::host_vector<float> ypoints;
+    for (auto &p : points) {
+        xpoints.push_back(p.x());
+        ypoints.push_back(p.y());
+    }
+    thrust::device_vector<float> dev_x(xpoints);
+    thrust::device_vector<float> dev_y(ypoints);
+    float *dev_x_ptr = thrust::raw_pointer_cast(&dev_x[0]);
+    float *dev_y_ptr = thrust::raw_pointer_cast(&dev_y[0]);
+
+    auto size = xpoints.size();
+    thrust::device_vector<uint8_t> dev_o(size);
+    uint8_t *dev_o_ptr = thrust::raw_pointer_cast(&dev_o[0]);
+
+    traceThetaKernel<<<(size / 256) + 1, 256>>>(size, multiplane, dev_x_ptr,
+                                                dev_y_ptr, dev_o_ptr);
+
+    thrust::host_vector<uint8_t> output = dev_o;
+
+    std::ofstream testimg("testimage_cu_mass.raw", std::ios::binary);
+    testimg.write((char *)&output[0], sizeof(uint8_t) * output.size());
+    testimg.close();
+}
