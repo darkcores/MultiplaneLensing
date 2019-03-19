@@ -5,8 +5,6 @@
 #include "util/cosmology.h"
 #include <vector>
 
-#include <cuda_runtime_api.h>
-
 /**
  * Data for a lens plane.
  */
@@ -38,8 +36,10 @@ class Multiplane {
     const PlaneData *__restrict__ m_plane_ptr;
     const SourcePlane *__restrict__ m_src_plane_ptr;
 	PlaneData *m_plane_data;
+	SourcePlane *m_src_data;
     const int m_plane_length;
     const int m_src_length;
+	bool m_cuda;
 
   public:
 	/**
@@ -58,11 +58,18 @@ class Multiplane {
 	 * @param src_plane_ptr Pointer to source plane memory.
 	 */
     Multiplane(int plane_length, int src_length, PlaneData *plane_ptr,
-               SourcePlane *src_plane_ptr)
+               SourcePlane *src_plane_ptr, bool cuda = false)
         : m_plane_ptr(plane_ptr), m_src_plane_ptr(src_plane_ptr),
           m_plane_length(plane_length), m_src_length(src_length) {
 		m_plane_data = plane_ptr;
+		m_src_data = src_plane_ptr;
+		m_cuda = cuda;
 	}
+	
+	/**
+	 * Cleanup memory allocations.
+	 */
+	int destroy();
 
     /**
      * Trace theta to source plane
@@ -86,7 +93,7 @@ class Multiplane {
  */
 class MultiplaneBuilder {
   private:
-	std::vector<CompositeLensBuilder *> m_builders;
+	std::vector<CompositeLensBuilder> m_builders;
 	std::vector<PlaneData> m_data;
 	std::vector<SourcePlane> m_src_data;
 
@@ -107,19 +114,11 @@ class MultiplaneBuilder {
     MultiplaneBuilder(const Cosmology cosm) : m_cosm(cosm) {}
 
 	/**
-	 * Cleanup, also cleans up GPU resources. Issue see CompositeLens.
-	 */
-	~MultiplaneBuilder() {
-		if (cuda)
-			cuFree();
-	}
-
-	/**
 	 * Add a lens plane.
 	 * 
 	 * @param lensbuilder Builder for CompositeLens.
 	 */
-    void addPlane(CompositeLensBuilder *lensbuilder);
+    void addPlane(CompositeLensBuilder &lensbuilder);
 	/**
 	 * Add a source plane.
 	 *
@@ -135,8 +134,4 @@ class MultiplaneBuilder {
 	 * Get Multiplane (GPU/CUDA).
 	 */
     Multiplane getCuMultiPlane();
-	/**
-	 * Free cuda allocations.
-	 */
-	void cuFree();
 };

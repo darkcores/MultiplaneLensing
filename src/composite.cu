@@ -1,44 +1,39 @@
 #include "composite.h"
 #include <iostream>
 
+int CompositeLens::destroy() {
+    if (m_data_ptr) {
+        if (m_cuda) {
+            cudaFree(m_data_ptr);
+        } else {
+            free(m_data_ptr);
+        }
+        m_data_ptr = NULL;
+    }
+	return 0;
+}
+
 CompositeLens CompositeLensBuilder::getCuLens() {
-	cuda = true;
 #ifdef __CUDACC__
     // m_lenses.push_back(LensData());
     // dev_m_lenses = m_lenses;
     // auto lens_ptr = thrust::raw_pointer_cast(&dev_m_lenses[0]);
     size_t size = m_lenses.size();
     if (cudaMalloc(&lens_ptr, sizeof(LensData) * size) != cudaSuccess) {
-		std::cout << "Malloc: " << cudaGetErrorString(cudaPeekAtLastError()) << std::endl;
+        std::cout << "Malloc: " << cudaGetErrorString(cudaPeekAtLastError())
+                  << std::endl;
         std::terminate();
     }
     if (cudaMemcpy(lens_ptr, &m_lenses[0], sizeof(LensData) * size,
                    cudaMemcpyHostToDevice) != cudaSuccess) {
-		std::cout << "Memcpy: " << cudaGetErrorString(cudaPeekAtLastError()) << std::endl;
+        std::cout << "Memcpy: " << cudaGetErrorString(cudaPeekAtLastError())
+                  << std::endl;
         std::terminate();
     }
 #else
     CompositeLens *lens_ptr = nullptr;
 #endif
-    return CompositeLens(m_Dd, m_Ds, m_Dds, lens_ptr, size, m_scale);
-}
-
-void CompositeLensBuilder::cuFree() {
-	cudaFree(lens_ptr);
-}
-
-CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
-                             LensData *data_ptr, size_t size, float scale)
-    : cur_data_ptr(data_ptr) {
-    m_Dd = Dd;
-    m_Ds = Ds;
-    m_Dds = Dds;
-    m_D = m_Dds / m_Ds;
-    m_Df = m_Dds / m_Ds;
-    m_scale = scale;
-    // cur_data_ptr = data_ptr;
-    m_data_ptr = data_ptr;
-    length = size;
+    return CompositeLens(m_Dd, m_Ds, m_Dds, lens_ptr, size, m_scale, true);
 }
 
 __host__ __device__ Vector2D<double>

@@ -2,7 +2,14 @@
 
 #include <cmath>
 // CUDA includes
+#ifdef __CUDACC__
 #include <cuda_runtime_api.h>
+#else
+#ifndef __host__
+#define __host__
+#define __device__
+#endif
+#endif
 
 /**
  * Vector2D template class.

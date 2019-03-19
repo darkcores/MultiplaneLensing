@@ -59,7 +59,8 @@ TEST(CompositeCuTests, TestAlpha) {
                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
     // lens.prepare();
     thrust::device_vector<CompositeLens> dv;
-    dv.push_back(lensbuilder.getCuLens());
+	auto lens = lensbuilder.getCuLens();
+    dv.push_back(lens);
     auto l_ptr = thrust::raw_pointer_cast(&dv[0]);
 
     thrust::device_vector<Vector2D<double>> alphas(1048576);
@@ -80,6 +81,7 @@ for (int i = 0; i < 128; i += 64) {
     }
 }
     */
+	lens.destroy();
 }
 
 TEST(CompositeCuTests, TestBeta) {
@@ -102,6 +104,8 @@ TEST(CompositeCuTests, TestBeta) {
 
     betatest<<<1048576 / 256, 256>>>(1048576, l_ptr, b_ptr);
     thrust::host_vector<Vector2D<double>> h_betas(betas);
+	
+	lens.destroy();
 }
 
 TEST(CompositeCuTests, TestBetaF) {
@@ -138,4 +142,5 @@ TEST(CompositeCuTests, TestBetaF) {
     betaftest<<<1048576 / 64, 64>>>(1048576, l_ptr, tx_ptr, tx_ptr, bx_ptr,
                                      by_ptr, Ds, Dds);
     // thrust::host_vector<Vector2D<float>> h_betas(betas);
+	lens.destroy();
 }

@@ -40,6 +40,7 @@ TEST(CompositeTests, TestAlpha) {
     // EXPECT_EQ(alpha.y(), 3.91372304e-05);
     EXPECT_LT(abs(alpha.x() - 2.01259882e-05), 1e-11);
     EXPECT_LT(abs(alpha.y() - 3.91372304e-05), 1e-11);
+	lens.destroy();
 }
 
 TEST(CompositeTests, TestBeta) {
@@ -58,6 +59,7 @@ TEST(CompositeTests, TestBeta) {
     // EXPECT_EQ(beta.y(), -1.10613056e-05);
     EXPECT_LT(abs(beta.x() + 5.82627194e-06), 1e-11);
     EXPECT_LT(abs(beta.y() + 1.10613056e-05), 1e-11);
+	lens.destroy();
 }
 
 TEST(CompositeTests, TestAlphaf) {
@@ -74,6 +76,7 @@ TEST(CompositeTests, TestAlphaf) {
     // EXPECT_EQ(alpha.y(), 3.91372304e-05);
     EXPECT_LT(abs(alpha.x() - 2.01259882e-05), 1e-10);
     EXPECT_LT(abs(alpha.y() - 3.91372304e-05), 1e-10);
+	lens.destroy();
 }
 
 TEST(CompositeTests, TestBetaf) {
@@ -96,4 +99,5 @@ TEST(CompositeTests, TestBetaf) {
     // }
     // EXPECT_EQ(beta.x(), -5.82627194e-06);
     // EXPECT_EQ(beta.y(), -1.10613056e-05);
+	lens.destroy();
 }

@@ -2,8 +2,6 @@
 
 #include <cstdio>
 #include "util/vector2d.h"
-// CUDA includes
-#include <cuda_runtime_api.h>
 
 /**
  * Plummer lens class.

@@ -89,8 +89,8 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     lensbuilder2.setScale(10);
 
     MultiplaneBuilder planebuilder(cosm);
-    planebuilder.addPlane(&lensbuilder);
-    planebuilder.addPlane(&lensbuilder2);
+    planebuilder.addPlane(lensbuilder);
+    planebuilder.addPlane(lensbuilder2);
 
     SourcePlaneBuilder sourcebuilder(z_s);
     sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
@@ -142,16 +142,16 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     // Might give a small performance boost
     // cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 
-    std::cout << "Setup done, starting kernel" << std::endl;
+    // std::cout << "Setup done, starting kernel" << std::endl;
     // size_t newHeapSize = 1024 * 1000 * 32;
     // cudaDeviceSetLimit(cudaLimitMallocHeapSize, newHeapSize);
     traceThetaKernel<<<(size / 256) + 1, 256>>>(size, multiplane, dev_x_ptr,
                                                 dev_y_ptr, dev_o_ptr);
 
-    std::cout << "Kernel: " << cudaGetErrorString(cudaPeekAtLastError())
-              << std::endl;
+    // std::cout << "Kernel: " << cudaGetErrorString(cudaPeekAtLastError())
+    //          << std::endl;
     cudaDeviceSynchronize();
-    std::cout << "Kernel done" << std::endl;
+    // std::cout << "Kernel done" << std::endl;
     thrust::host_vector<uint8_t> output = dev_o;
 
     std::ofstream testimg("testimage_cu.raw", std::ios::binary);
@@ -178,7 +178,7 @@ TEST(CuMultiplaneTests, TestMassesUpdate) {
                            1 * ANGLE_ARCSEC);
 
     MultiplaneBuilder planebuilder(cosm);
-    planebuilder.addPlane(&lensbuilder);
+    planebuilder.addPlane(lensbuilder);
     auto sp = sourcebuilder.getCuPlane();
     planebuilder.addSourcePlane(sp);
     auto multiplane = planebuilder.getCuMultiPlane();

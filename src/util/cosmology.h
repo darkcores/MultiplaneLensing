@@ -1,7 +1,14 @@
 #pragma once
 
 // CUDA includes
+#ifdef __CUDACC__
 #include <cuda_runtime_api.h>
+#else
+#ifndef __host__
+#define __host__
+#define __device__
+#endif
+#endif
 
 class Cosmology {
   private:
@@ -28,6 +35,7 @@ class Cosmology {
 
 	/**
 	 * Calculate angular diameter distance for redshift(s).
+	 * TODO: Use GSL for integration
 	 *
 	 * @param z1 First redshift.
 	 * @param z2 Second redshift.

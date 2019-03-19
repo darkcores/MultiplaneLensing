@@ -66,8 +66,8 @@ TEST(MultiplaneTests, TestBetaf) {
     // auto lens2 = lensbuilder.getLens();
 
     MultiplaneBuilder planebuilder(cosm);
-    planebuilder.addPlane(&lensbuilder);
-    planebuilder.addPlane(&lensbuilder2);
+    planebuilder.addPlane(lensbuilder);
+    planebuilder.addPlane(lensbuilder2);
 
     SourcePlaneBuilder sourcebuilder(z_s);
     sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
@@ -89,7 +89,7 @@ TEST(MultiplaneTests, TestBetaf) {
     sourcebuilder2.addPoint(
         Vector2D<float>(-3 * ANGLE_ARCSEC, -4 * ANGLE_ARCSEC), 1 * ANGLE_ARCSEC,
         128);
-    auto sourceplane2 = sourcebuilder2.getPlane();
+    // auto sourceplane2 = sourcebuilder2.getPlane();
     // planebuilder.addSourcePlane(sourceplane2);
 
     // Set masses on 1 lens
@@ -103,7 +103,7 @@ TEST(MultiplaneTests, TestBetaf) {
 
     auto multiplane = planebuilder.getMultiPlane();
 
-    std::cout << "Setup done" << std::endl;
+    // std::cout << "Setup done" << std::endl;
 
     Vector2D<float> point(1 * ANGLE_ARCSEC, 1 * ANGLE_ARCSEC);
     auto pixel = multiplane.traceTheta(point);
@@ -113,7 +113,7 @@ TEST(MultiplaneTests, TestBetaf) {
         thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
                   Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC));
 
-    std::ofstream testimg("testimage.dat", std::ios::binary);
+    std::ofstream testimg("testimage.raw", std::ios::binary);
     for (auto &p : points) {
         pixel = multiplane.traceTheta(p);
         testimg.write((char *)&pixel, sizeof(uint8_t));
@@ -126,4 +126,5 @@ TEST(MultiplaneTests, TestBetaf) {
     // }
     // EXPECT_EQ(beta.x(), -5.82627194e-06);
     // EXPECT_EQ(beta.y(), -1.10613056e-05);
+	multiplane.destroy();
 }
