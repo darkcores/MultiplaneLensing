@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include "util/error.h"
 
 void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
     lens.setScale(m_scale);
@@ -37,12 +38,14 @@ void CompositeLensBuilder::setScale(const float scale) {
 
 CompositeLens CompositeLensBuilder::getLens() {
     // m_lenses.push_back(LensData());
-	lens_ptr = (LensData *)malloc(sizeof(LensData) * m_lenses.size());
-	if (lens_ptr == NULL) {
-		std::cerr << "Unable to allocate memory" << std::endl;
+	size_t size = sizeof(LensData) * m_lenses.size();
+	if (size == 0) {
+		std::cerr << "No lenses added" << std::endl;
 		std::terminate();
 	}
-	std::memcpy(lens_ptr, &m_lenses[0], sizeof(LensData) * m_lenses.size());
+	lens_ptr = (LensData *)malloc(size);
+	cpuErrchk(lens_ptr);
+	std::memcpy(lens_ptr, &m_lenses[0], size);
     CompositeLens lens(m_Dd, m_Ds, m_Dds, lens_ptr, m_lenses.size(),
                        m_scale);
     return lens;

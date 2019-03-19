@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include "util/error.h"
 
 void MultiplaneBuilder::addPlane(CompositeLensBuilder &lensbuilder) {
     m_builders.push_back(lensbuilder);
@@ -60,16 +61,24 @@ Multiplane MultiplaneBuilder::getMultiPlane() {
     prepare();
 
     // Get final lenses from builders
-    m_builders.clear();
+    m_data.clear();
     for (size_t i = 0; i < m_builders.size(); i++) {
         auto lens = m_builders[i].getLens();
         PlaneData plane(lens, m_builders[i].redshift());
         m_data.push_back(plane);
     }
 
+    if (m_data.size() == 0 || m_src_data.size() == 0) {
+        std::cerr << "No lens and/or source planes given " << m_data.size()
+                  << "-" << m_src_data.size() << std::endl;
+        std::terminate();
+    }
+
     plane_ptr = (PlaneData *)malloc(sizeof(PlaneData) * m_data.size());
+	cpuErrchk(plane_ptr);
     std::memcpy(plane_ptr, &m_data[0], sizeof(PlaneData) * m_data.size());
     src_ptr = (SourcePlane *)malloc(sizeof(SourcePlane) * m_src_data.size());
+	cpuErrchk(src_ptr);
     std::memcpy(src_ptr, &m_src_data[0],
                 sizeof(SourcePlane) * m_src_data.size());
 

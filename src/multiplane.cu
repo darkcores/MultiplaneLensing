@@ -1,5 +1,6 @@
 #include "multiplane.h"
 
+#include "util/error.h"
 #include <algorithm>
 #include <iostream>
 
@@ -7,30 +8,37 @@ Multiplane MultiplaneBuilder::getCuMultiPlane() {
     prepare();
 
     // Get final lenses from builders
-	m_builders.clear();
+    m_builders.clear();
     for (size_t i = 0; i < m_builders.size(); i++) {
         auto lens = m_builders[i].getCuLens();
         PlaneData plane(lens, m_builders[i].redshift());
         m_data.push_back(plane);
     }
 
+    if (m_data.size() == 0 || m_src_data.size() == 0) {
+        std::cerr << "No lens and/or source planes given" << std::endl;
+        std::terminate();
+    }
     cuda = true;
 #ifdef __CUDACC__
     // dev_m_data = m_data;
     // dev_m_src_data = m_src_data;
     // plane_ptr = thrust::raw_pointer_cast(&dev_m_data[0]);
     // src_ptr = thrust::raw_pointer_cast(&dev_m_src_data[0]);
-    cudaMalloc(&plane_ptr, sizeof(PlaneData) * m_data.size());
-    cudaMemcpy(plane_ptr, &m_data[0], sizeof(PlaneData) * m_data.size(),
-               cudaMemcpyHostToDevice);
-    cudaMalloc(&src_ptr, sizeof(SourcePlane) * m_src_data.size());
-    cudaMemcpy(src_ptr, &m_src_data[0], sizeof(SourcePlane) * m_src_data.size(),
-               cudaMemcpyHostToDevice);
+    gpuErrchk(cudaMalloc(&plane_ptr, sizeof(PlaneData) * m_data.size()));
+    gpuErrchk(cudaMemcpy(plane_ptr, &m_data[0],
+                         sizeof(PlaneData) * m_data.size(),
+                         cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMalloc(&src_ptr, sizeof(SourcePlane) * m_src_data.size()));
+    gpuErrchk(cudaMemcpy(src_ptr, &m_src_data[0],
+                         sizeof(SourcePlane) * m_src_data.size(),
+                         cudaMemcpyHostToDevice));
 #else
     plane_ptr = nullptr;
     src_ptr = nullptr;
 #endif
-    return Multiplane(m_data.size(), m_src_data.size(), plane_ptr, src_ptr, true);
+    return Multiplane(m_data.size(), m_src_data.size(), plane_ptr, src_ptr,
+                      true);
 }
 
 int Multiplane::destroy() {
@@ -44,9 +52,9 @@ int Multiplane::destroy() {
         cudaFree(m_plane_data);
         cudaFree(m_src_data);
     } else {
-		free(m_plane_data);
-		free(m_src_data);
-	}
+        free(m_plane_data);
+        free(m_src_data);
+    }
     m_plane_data = NULL;
     m_src_data = NULL;
     return 0;

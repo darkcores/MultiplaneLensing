@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#include <iostream>
 
 /**
  * Source point data.
@@ -87,19 +88,7 @@ class SourcePlane {
     /**
      * Memory cleanup.
      */
-    int destroy() {
-        if (m_points_ptr) {
-            if (m_cuda) {
-#ifdef __CUDACC__
-                cudaFree(m_points_ptr);
-#endif
-            } else {
-                free(m_points_ptr);
-            }
-            m_points_ptr = NULL;
-        }
-        return 0;
-    }
+    int destroy();
 
     /**
      * Set the source angular distance.
@@ -172,27 +161,9 @@ class SourcePlaneBuilder {
     /**
      * Get LensPlane for CPU.
      */
-    SourcePlane getPlane() {
-        ptr = (SourceData *)malloc(sizeof(SourceData) * m_points.size());
-		memcpy(ptr, &m_points[0], sizeof(SourceData) * m_points.size());
-
-        return SourcePlane(m_redshift, ptr, m_points.size());
-    }
-
+    SourcePlane getPlane();
     /**
      * Get LensPlane for GPU/CUDA.
      */
-    SourcePlane getCuPlane() {
-        cuda = true;
-#ifdef __CUDACC__
-        // dev_m_points = m_points;
-        // ptr = thrust::raw_pointer_cast(&dev_m_points[0]);
-        cudaMalloc(&ptr, sizeof(SourceData) * m_points.size());
-        cudaMemcpy(ptr, &m_points[0], sizeof(SourceData) * m_points.size(),
-                   cudaMemcpyHostToDevice);
-#else
-        ptr = nullptr;
-#endif
-        return SourcePlane(m_redshift, ptr, m_points.size(), true);
-    }
+    SourcePlane getCuPlane();
 };

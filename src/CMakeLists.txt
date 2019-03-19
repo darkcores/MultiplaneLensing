@@ -2,7 +2,8 @@ SET(COMMON_SRC
   plummer.cu
   composite.cu
   composite.cpp
-  # sources.cu
+  sources.cu
+  sources.cpp
   multiplane.cu
   multiplane.cpp
   multiplane_cu.cu
@@ -13,7 +14,7 @@ add_library(lens_common
 	${COMMON_SRC}
 )
 
-set_property(TARGET lens_common PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+# set_property(TARGET lens_common PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
 
 # add_executable(lenstest
 #  main.cpp

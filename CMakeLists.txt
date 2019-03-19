@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 3.9.0)
 project (LensTestCuda LANGUAGES CUDA CXX C)
-set(CMAKE_CXX_COMPILER_WORKS 1)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pedantic")
+SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pipe ")
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)

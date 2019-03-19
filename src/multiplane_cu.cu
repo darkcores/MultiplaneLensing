@@ -1,6 +1,7 @@
 #include "multiplane_cu.h"
 
 #include "multiplane.h"
+#include "util/error.h"
 
 MultiPlaneContext::MultiPlaneContext(const double angularUnit,
                                      const Cosmology cosmology)
@@ -14,15 +15,15 @@ MultiPlaneContext::MultiPlaneContext(const double angularUnit,
 
 MultiPlaneContext::~MultiPlaneContext() {
     if (m_theta_x)
-        cudaFree(m_theta_x);
+        gpuErrchk(cudaFree(m_theta_x));
     if (m_theta_y)
-        cudaFree(m_theta_y);
+        gpuErrchk(cudaFree(m_theta_y));
     if (m_beta_x)
-        cudaFree(m_beta_x);
+        gpuErrchk(cudaFree(m_beta_x));
     if (m_beta_y)
-        cudaFree(m_beta_y);
+        gpuErrchk(cudaFree(m_beta_y));
     if (m_multiplane)
-        cudaFree(m_multiplane);
+        gpuErrchk(cudaFree(m_multiplane));
 }
 
 CompositeLensBuilder
@@ -30,6 +31,9 @@ MultiPlaneContext::buildLens(const double Dd,
                              const std::vector<PlummerParams> &params) {
 	CompositeLensBuilder builder;
 	for (auto &param : params) {
+		auto position = param.position * m_angularUnit;
+		Plummer plum(Dd, param.mass, param.angularwidth);
+		builder.addLens(plum, position);
 	}
 	return builder;
 }
@@ -49,6 +53,12 @@ int MultiPlaneContext::init(
     }
 
 	// Setup sources
+	for (auto z : sourceRedshifts) {
+		// TODO, maybe just add a function that takes this vector
+		SourcePlaneBuilder sp(z);
+		auto plane = sp.getCuPlane();
+		planebuilder.addSourcePlane(plane);
+	}
 
 	// Build multiplane
 

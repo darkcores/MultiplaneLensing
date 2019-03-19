@@ -1,4 +1,5 @@
 #include "composite.h"
+#include "util/error.h"
 #include <iostream>
 
 int CompositeLens::destroy() {
@@ -10,7 +11,7 @@ int CompositeLens::destroy() {
         }
         m_data_ptr = NULL;
     }
-	return 0;
+    return 0;
 }
 
 CompositeLens CompositeLensBuilder::getCuLens() {
@@ -19,17 +20,13 @@ CompositeLens CompositeLensBuilder::getCuLens() {
     // dev_m_lenses = m_lenses;
     // auto lens_ptr = thrust::raw_pointer_cast(&dev_m_lenses[0]);
     size_t size = m_lenses.size();
-    if (cudaMalloc(&lens_ptr, sizeof(LensData) * size) != cudaSuccess) {
-        std::cout << "Malloc: " << cudaGetErrorString(cudaPeekAtLastError())
-                  << std::endl;
+    if (size == 0) {
+        std::cerr << "No lenses added" << std::endl;
         std::terminate();
     }
-    if (cudaMemcpy(lens_ptr, &m_lenses[0], sizeof(LensData) * size,
-                   cudaMemcpyHostToDevice) != cudaSuccess) {
-        std::cout << "Memcpy: " << cudaGetErrorString(cudaPeekAtLastError())
-                  << std::endl;
-        std::terminate();
-    }
+    gpuErrchk(cudaMalloc(&lens_ptr, sizeof(LensData) * size));
+    gpuErrchk(cudaMemcpy(lens_ptr, &m_lenses[0], sizeof(LensData) * size,
+                         cudaMemcpyHostToDevice));
 #else
     CompositeLens *lens_ptr = nullptr;
 #endif
