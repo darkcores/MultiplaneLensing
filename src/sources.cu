@@ -10,10 +10,12 @@ SourcePlane SourcePlaneBuilder::getCuPlane() {
     // dev_m_points = m_points;
     // ptr = thrust::raw_pointer_cast(&dev_m_points[0]);
     size_t size = sizeof(SourceData) * m_points.size();
+	/*
     if (size == 0) {
         std::cerr << "No sources added" << std::endl;
         std::terminate();
     }
+	*/
     gpuErrchk(cudaMalloc(&ptr, size));
     gpuErrchk(cudaMemcpy(ptr, &m_points[0], size, cudaMemcpyHostToDevice));
 #else

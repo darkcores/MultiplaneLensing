@@ -8,7 +8,7 @@ Multiplane MultiplaneBuilder::getCuMultiPlane() {
     prepare();
 
     // Get final lenses from builders
-    m_builders.clear();
+    m_data.clear();
     for (size_t i = 0; i < m_builders.size(); i++) {
         auto lens = m_builders[i].getCuLens();
         PlaneData plane(lens, m_builders[i].redshift());
@@ -42,15 +42,38 @@ Multiplane MultiplaneBuilder::getCuMultiPlane() {
 }
 
 int Multiplane::destroy() {
-    for (int i = 0; i < m_plane_length; i++) {
-        m_plane_data[i].lens.destroy();
-    }
-    for (int i = 0; i < m_src_length; i++) {
-        m_src_data[i].destroy();
+    if (m_cuda) {
+        // So we copy them back to cpu first and then destroy TODO:
+        // consider just keeping a vector of them in memory for
+        // cleanliness
+        size_t psize = m_plane_length * sizeof(PlaneData);
+        PlaneData *pptr = (PlaneData *)malloc(psize);
+        cpuErrchk(pptr);
+        gpuErrchk(cudaMemcpy(pptr, m_plane_ptr, psize, cudaMemcpyDeviceToHost));
+        for (int i = 0; i < m_plane_length; i++) {
+            pptr[i].lens.destroy();
+        }
+        free(pptr);
+        size_t ssize = m_src_length * sizeof(SourcePlane);
+        SourcePlane *sptr = (SourcePlane *)malloc(ssize);
+        cpuErrchk(sptr);
+        gpuErrchk(
+            cudaMemcpy(sptr, m_src_plane_ptr, ssize, cudaMemcpyDeviceToHost));
+        for (int i = 0; i < m_src_length; i++) {
+            sptr[i].destroy();
+        }
+        free(sptr);
+    } else {
+        for (int i = 0; i < m_plane_length; i++) {
+            m_plane_data[i].lens.destroy();
+        }
+        for (int i = 0; i < m_src_length; i++) {
+            m_src_data[i].destroy();
+        }
     }
     if (m_cuda) {
-        cudaFree(m_plane_data);
-        cudaFree(m_src_data);
+        gpuErrchk(cudaFree(m_plane_data));
+        gpuErrchk(cudaFree(m_src_data));
     } else {
         free(m_plane_data);
         free(m_src_data);

@@ -5,7 +5,7 @@
 int CompositeLens::destroy() {
     if (m_data_ptr) {
         if (m_cuda) {
-            cudaFree(m_data_ptr);
+            gpuErrchk(cudaFree(m_data_ptr));
         } else {
             free(m_data_ptr);
         }

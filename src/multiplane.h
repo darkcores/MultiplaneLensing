@@ -91,6 +91,8 @@ class Multiplane {
                                      const double *masses) {
         m_plane_data[dim].lens.setMass(i, masses[i]);
     }
+	
+	int srcLength() const { return m_src_length; }
 };
 
 /**
