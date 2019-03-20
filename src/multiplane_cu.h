@@ -9,12 +9,18 @@
 class Multiplane;
 class CompositeLensBuilder;
 
+/**
+ * Initial parameters for each plummer lens.
+ */
 struct PlummerParams {
     Vector2D<float> position;
     float angularwidth;
     double mass;
 };
 
+/**
+ * Context for multiplane plummer calculations.
+ */
 class MultiPlaneContext {
   private:
     const double m_angularUnit;
@@ -39,7 +45,7 @@ class MultiPlaneContext {
 
     int setThetas(const std::vector<Vector2D<float>> &thetas);
 
-    int calculatePositions(const std::vector<std::vector<float>> &masses);
+    int calculatePositions(const std::vector<std::vector<double>> &masses);
 
-    const std::vector<Vector2D<float>> &getSourcePositions(int idx);
+    const std::vector<Vector2D<float>> getSourcePositions(int idx) const;
 };

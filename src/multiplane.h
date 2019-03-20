@@ -77,8 +77,8 @@ class Multiplane {
     /**
      * Trace thetas and save positions to multiple source planes
      */
-    __device__ void traceTheta(Vector2D<float> theta, float *beta_x,
-                               float *beta_y) const;
+    __host__ __device__ void traceTheta(Vector2D<float> theta, float *beta_x,
+                               float *beta_y, const size_t offset) const;
 
     /**
      * Update lens masses (GPU only)
@@ -91,8 +91,8 @@ class Multiplane {
                                      const double *masses) {
         m_plane_data[dim].lens.setMass(i, masses[i]);
     }
-	
-	int srcLength() const { return m_src_length; }
+
+    int srcLength() const { return m_src_length; }
 };
 
 /**
@@ -107,7 +107,7 @@ class MultiplaneBuilder {
     bool cuda = false;
     PlaneData *plane_ptr;
     SourcePlane *src_ptr;
-	float *z_ptr;
+    float *z_ptr;
 
     const Cosmology m_cosm;
 
@@ -134,11 +134,11 @@ class MultiplaneBuilder {
      */
     void addSourcePlane(SourcePlane &plane);
 
-	/**
-	 * If we aren't using source planes with points we only need the
-	 * redshifts for beta vectors
-	 */
-	void setRedshifts(std::vector<float> &redshifts);
+    /**
+     * If we aren't using source planes with points we only need the
+     * redshifts for beta vectors
+     */
+    void setRedshifts(std::vector<float> &redshifts);
 
     /**
      * Get Multiplane (CPU).

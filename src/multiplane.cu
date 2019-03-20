@@ -108,37 +108,17 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
     }
 
     // Go over each lensplane, and, if we encounter it, source plane.
-    for (int i = 0; i < m_plane_length; i++) {
-        zs = m_plane_ptr[i].redshift;
-        /*
-        #ifdef __CUDA_ARCH__
-        if (threadIdx.x < 3) {
-                printf("Theta %d: (%f; %f)\n", threadIdx.x, theta.x(),
-        theta.y());
-        }
-        #else
-        printf("Theta: (%f; %f)\n", theta.x(), theta.y());
-        #endif
-        */
+    for (int i = 0; i < (m_plane_length - 1); i++) {
+        zs = m_plane_ptr[i + 1].redshift;
         // TODO what if sourceplane is before lens
-        while (z_src < zs) {
+        while (z_src <= zs) {
             // Do source plane(s)
             // TODO check theta with sourceplane
             float Ds = m_src_plane_ptr[i_src].ds();
             float Dds = m_src_plane_ptr[i_src].dds();
             Vector2D<float> s_theta =
-                m_plane_ptr[i - 1].lens.getBetaf(theta, Ds, Dds);
+                m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
             uint8_t p = m_src_plane_ptr[i_src].check_hit(s_theta);
-            /*
-#ifdef __CUDA_ARCH__
-            if (threadIdx.x < 3) {
-                    printf("S Theta %d: (%f; %f)\n", threadIdx.x, theta.x(),
-theta.y());
-            }
-#else
-            printf("S Theta: (%f; %f)\n", theta.x(), theta.y());
-#endif
-            */
             if (p != 0) {
                 // TODO return here or add sources?
                 return p;
@@ -150,10 +130,8 @@ theta.y());
             }
             z_src = m_src_plane_ptr[i_src].redshift();
         }
-        if (i < (m_plane_length - 1)) {
-            auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-            theta = beta;
-        }
+		auto beta = m_plane_ptr[i].lens.getBetaf(theta);
+		theta = beta;
     }
     // Handle remaining source planes
     while (i_src < m_src_length) {
@@ -169,4 +147,70 @@ theta.y());
         i_src++;
     }
     return pixel;
+}
+
+void Multiplane::traceTheta(Vector2D<float> theta, float *beta_x,
+                               float *beta_y, const size_t offset) const {
+    int i_src = 0;
+    float z_src = m_src_plane_ptr[i_src].redshift();
+    // Draw before any lenses first (TODO)
+    float zs = z_src + 10000000;
+    if (m_plane_length > 0)
+        zs = m_plane_ptr[0].redshift;
+	// printf("Z init vals: %f and %f\n", z_src, zs);
+    while (z_src < zs) {
+        // Do source plane(s)
+		// printf("Using theta without lens: [ %f ; %f ]\n", theta.x(), theta.y());
+		*beta_x = theta.x();
+		*beta_y = theta.y();
+		beta_x += offset;
+		beta_y += offset;
+        i_src++;
+        if (i_src == m_src_length) {
+            // No need to continue now
+			return;
+        }
+        z_src = m_src_plane_ptr[i_src].redshift();
+    }
+
+    // Go over each lensplane, and, if we encounter it, source plane.
+    for (int i = 0; i < (m_plane_length - 1); i++) {
+        zs = m_plane_ptr[i + 1].redshift;
+        while (z_src <= zs) {
+            // Do source plane(s) that are in front of the current lens
+            const float Ds = m_src_plane_ptr[i_src].ds();
+            const float Dds = m_src_plane_ptr[i_src].dds();
+            const Vector2D<float> s_theta =
+                m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
+			// printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
+			// printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
+			*beta_x = s_theta.x();
+			*beta_y = s_theta.y();
+			beta_x += offset;
+			beta_y += offset;
+            i_src++;
+            if (i_src == m_src_length) {
+                // No need to continue now
+				return;
+            }
+            z_src = m_src_plane_ptr[i_src].redshift();
+        }
+		auto beta = m_plane_ptr[i].lens.getBetaf(theta);
+		theta = beta;
+    }
+	
+    // Handle remaining source planes with last lens
+    while (i_src < m_src_length) {
+        float Ds = m_src_plane_ptr[i_src].ds();
+        float Dds = m_src_plane_ptr[i_src].dds();
+        Vector2D<float> s_theta =
+            m_plane_ptr[m_plane_length - 1].lens.getBetaf(theta, Ds, Dds);
+		// printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
+		// printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
+		*beta_x = s_theta.x();
+		*beta_y = s_theta.y();
+		beta_x += offset;
+		beta_y += offset;
+        i_src++;
+    }
 }

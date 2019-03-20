@@ -159,6 +159,78 @@ TEST(CuMultiplaneTests, TestBetafUberKernel) {
     testimg.close();
 }
 
+TEST(CuMultiplaneTests, TestBetaFDemo) {
+    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    double z_d1 = 0.4;
+    double z_d2 = 0.8;
+    double z_s = 1.2;
+    auto Dd1 = cosm.angularDiameterDistance(z_d1);
+    auto Dd2 = cosm.angularDiameterDistance(z_d2);
+
+    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder.setRedshift(z_d1);
+    lensbuilder.setScale(3600);
+    auto lensbuilder2 =
+        createGrid(Dd2, 6, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder2.setRedshift(z_d2);
+    lensbuilder2.setScale(10);
+
+    MultiplaneBuilder planebuilder(cosm);
+    planebuilder.addPlane(lensbuilder);
+    planebuilder.addPlane(lensbuilder2);
+
+    SourcePlaneBuilder sourcebuilder(z_s);
+    sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    auto sourceplane = sourcebuilder.getCuPlane();
+    planebuilder.addSourcePlane(sourceplane);
+
+    auto multiplane = planebuilder.getCuMultiPlane();
+    // Multiplane *mp;
+    // cudaMalloc(&mp, sizeof(Multiplane));
+    // cudaMemcpy(mp, &multiplane, sizeof(Multiplane), cudaMemcpyHostToDevice);
+
+    // Points and layout for cuda
+    auto points =
+        thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
+                  Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC));
+    thrust::host_vector<float> xpoints;
+    thrust::host_vector<float> ypoints;
+    for (auto &p : points) {
+        xpoints.push_back(p.x());
+        ypoints.push_back(p.y());
+    }
+    thrust::device_vector<float> dev_x(xpoints);
+    thrust::device_vector<float> dev_y(ypoints);
+    float *dev_x_ptr = thrust::raw_pointer_cast(&dev_x[0]);
+    float *dev_y_ptr = thrust::raw_pointer_cast(&dev_y[0]);
+
+    auto size = xpoints.size();
+    thrust::device_vector<uint8_t> dev_o(size);
+    uint8_t *dev_o_ptr = thrust::raw_pointer_cast(&dev_o[0]);
+
+    // Might give a small performance boost
+    // cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
+
+    // std::cout << "Setup done, starting kernel" << std::endl;
+    // size_t newHeapSize = 1024 * 1000 * 32;
+    // cudaDeviceSetLimit(cudaLimitMallocHeapSize, newHeapSize);
+    traceThetaKernel<<<(size / 256) + 1, 256>>>(size, multiplane, dev_x_ptr,
+                                                dev_y_ptr, dev_o_ptr);
+
+    // std::cout << "Kernel: " << cudaGetErrorString(cudaPeekAtLastError())
+    //          << std::endl;
+    cudaDeviceSynchronize();
+    // std::cout << "Kernel done" << std::endl;
+    thrust::host_vector<uint8_t> output = dev_o;
+
+    std::ofstream testimg("demo_cu.raw", std::ios::binary);
+    testimg.write((char *)&output[0], sizeof(uint8_t) * output.size());
+    testimg.close();
+}
+
 TEST(CuMultiplaneTests, TestMassesUpdate) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d1 = 0.4;
