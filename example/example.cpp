@@ -3,7 +3,6 @@
 
 void print_help() {
 	std::cout << "Program arguments" << std::endl;
-	std::cout << "\t-i\tLens backprojecten" << std::endl;
 	std::cout << "\t-d\tSelect cuda device" << std::endl;
 	std::cout << "\t-l\tLens input file" << std::endl;
 	std::cout << "\t-s\tSources input file" << std::endl;
@@ -14,11 +13,8 @@ int main(int argc, char *argv[]) {
 	int index;
 	char *cvalue = nullptr;
 
-	while ((c = getopt(argc, argv, "id:hl::s::")) != -1) {
+	while ((c = getopt(argc, argv, "d:hl::s::")) != -1) {
 		switch(c) {
-		case 'i':
-			std::cout << "Using inversion lens" << std::endl;
-			break;
 		case 'd':
 			std::cout << "Cuda device: TODO" << std::endl;
 			break;

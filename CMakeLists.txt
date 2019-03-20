@@ -27,3 +27,4 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 subdirs(src)
 subdirs(tests)
+subdirs(example)

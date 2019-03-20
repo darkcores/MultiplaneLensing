@@ -13,7 +13,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
         fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
                 line);
         if (abort)
-            exit(code);
+            throw(code);
     }
 }
 
@@ -26,6 +26,6 @@ inline void cpuAssert(void *code, const char *file, int line,
     if (code == NULL) {
         fprintf(stderr, "Assert memory error: %s %d\n", file, line);
         if (abort)
-            exit(1);
+            throw(-1);
     }
 }
