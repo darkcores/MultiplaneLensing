@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.9.0)
 project (LensTestCuda LANGUAGES CUDA CXX C)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(default_build_type "RELEASE")
 
 SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pipe ")
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")

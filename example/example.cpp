@@ -1,7 +1,7 @@
 #include <fstream>
 #include <getopt.h>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 // Multiplane CUDA API header
 #include <multiplane_cu.h>
@@ -88,18 +88,20 @@ void parse_args(int argc, char *argv[]) {
 
 void write_file(MultiPlaneContext *ctx) {
     printf("Writing %s\n", outfile);
-	
-	std::ofstream out(outfile);
-	out.precision(6);
 
-	for (size_t i = 0; i < source_z.size(); i++) {
-		out << "id: " << i << "\n";
-		auto points = ctx->getSourcePositions(0);
-		for (auto &p : points) {
-			out << p.x() << " " << p.y() << " ";
-		}
-		out << "\n";
-	}
+	// Writing binary is a lot faster but not readable.  But this is
+	// just an example, so it's not really important.
+    std::ofstream out(outfile, std::ios::binary);
+    out.precision(6);
+
+    for (size_t i = 0; i < source_z.size(); i++) {
+		size_t s = thetas.size();
+		out.write((char *)&s, sizeof(size_t));
+        auto points = ctx->getSourcePositions(0);
+        for (auto &p : points) {
+			out.write((char *)&p, sizeof(Vector2D<float>));
+        }
+    }
 }
 
 void load_file() {
@@ -113,84 +115,84 @@ void load_file() {
     // Read lenses
     int numlenses = 0;
     in >> numlenses;
-	std::cout << "Lenses: " << numlenses << std::endl;
+    std::cout << "Lenses: " << numlenses << std::endl;
     for (int i = 0; i < numlenses; i++) {
         double z = 0;
         in >> z;
         lens_z.push_back(z);
     }
 
-	lens_params.resize(numlenses);
+    lens_params.resize(numlenses);
     for (int i = 0; i < numlenses; i++) {
         int lenses = 0;
         in >> lenses;
-		std::cout << "Sublenses: " << lenses << std::endl;
+        std::cout << "Sublenses: " << lenses << std::endl;
         for (int j = 0; j < lenses; j++) {
             float x, y, angle;
             in >> x >> y >> angle;
             PlummerParams pp = {Vector2D<float>(x, y), angle, 1};
-			lens_params[i].push_back(pp);
+            lens_params[i].push_back(pp);
         }
     }
 
-	// Read source planes
-	int numsources = 0;
-	in >> numsources;
-	std::cout << "Source planes: " << numsources << std::endl;
-	for (int i = 0; i < numsources; i++) {
-		double z = 0;
-		in >> z;
-		source_z.push_back(z);
-	}
+    // Read source planes
+    int numsources = 0;
+    in >> numsources;
+    std::cout << "Source planes: " << numsources << std::endl;
+    for (int i = 0; i < numsources; i++) {
+        double z = 0;
+        in >> z;
+        source_z.push_back(z);
+    }
 
-	// Read thetas
-	int numthetas = 0;
-	in >> numthetas;
-	std::cout << "Loading thetas: " << numthetas << std::endl;
-	for (int i = 0; i < numthetas; i++) {
-		float x, y;
-		in >> x >> y;
-		thetas.push_back(Vector2D<float>(x, y));
-	}
+    // Read thetas
+    int numthetas = 0;
+    in >> numthetas;
+    std::cout << "Loading thetas: " << numthetas << std::endl;
+    for (int i = 0; i < numthetas; i++) {
+        float x, y;
+        in >> x >> y;
+        thetas.push_back(Vector2D<float>(x, y));
+    }
 
-	// Load masses
-	masses.resize(numlenses);
-	std::cout << "Loading masses" << std::endl;
-	for (int i = 0; i < numlenses; i++) {
-		int nmass = 0;
-		in >> nmass;
-		for (int j = 0; j < nmass; j++) {
-			double m = 0;
-			in >> m;
-			masses[i].push_back(m);
-		}
-	}
+    // Load masses
+    masses.resize(numlenses);
+    std::cout << "Loading masses" << std::endl;
+    for (int i = 0; i < numlenses; i++) {
+        int nmass = 0;
+        in >> nmass;
+        for (int j = 0; j < nmass; j++) {
+            double m = 0;
+            in >> m;
+            masses[i].push_back(m);
+        }
+    }
 
     in.close();
 }
 
 int main(int argc, char *argv[]) {
-	int error = 0;
-	
+    int error = 0;
+
     parse_args(argc, argv);
     load_file();
 
-	// Setup
+    // Setup
     const Cosmology cosm(0.7, 0.3, 0.0, 0.7);
-	MultiPlaneContext ctx(angularUnit, cosm);
-	error = ctx.init(lens_z, lens_params, source_z);
-	if (error)
-		return error;
-	error = ctx.setThetas(thetas);
-	if (error)
-		return error;
+    MultiPlaneContext ctx(angularUnit, cosm);
+    error = ctx.init(lens_z, lens_params, source_z);
+    if (error)
+        return error;
+    error = ctx.setThetas(thetas);
+    if (error)
+        return error;
 
-	// Calculate betas
-	error = ctx.calculatePositions(masses);
-	if (error)
-		return error;
+    // Calculate betas
+    error = ctx.calculatePositions(masses);
+    if (error)
+        return error;
 
-	write_file(&ctx);
-	
+    write_file(&ctx);
+
     return 0;
 }
