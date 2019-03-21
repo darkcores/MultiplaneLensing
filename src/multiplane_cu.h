@@ -20,6 +20,9 @@ struct PlummerParams {
 
 /**
  * Context for multiplane plummer calculations.
+ *
+ * For sample use cases see api_tests.cu in tests/ or example.cpp in
+ * example/ for a complete example program.
  */
 class MultiPlaneContext {
   private:
@@ -36,13 +39,33 @@ class MultiPlaneContext {
                                    const std::vector<PlummerParams> &params);
 
   public:
+	/**
+	 * Create a new context.
+	 *
+	 * @param angularUnit What unit is used in the input data,
+	 * eg. ANGLE_ARCSEC.
+	 * @param cosmology What parameters are used for cosmology.
+	 */
     MultiPlaneContext(const double angularUnit, const Cosmology cosmology);
     ~MultiPlaneContext();
 
+	/**
+	 * Initialize lenses and source planes.
+	 *
+	 * @param lensRedshifts List of redshifts for each lens.  
+	 * @param params Parameters for lenses, must be the same length as
+	 * lensRedshifts.
+	 * @param sourceRedshifts List of source plane redshifts.
+	 */
     int init(const std::vector<float> &lensRedshifts,
              const std::vector<std::vector<PlummerParams>> &params,
              const std::vector<float> &sourceRedshifts);
 
+	/**
+	 * Set thetas for calculations.
+	 *
+	 * @param thetas List of thetas.
+	 */
     int setThetas(const std::vector<Vector2D<float>> &thetas);
 
     int calculatePositions(const std::vector<std::vector<double>> &masses);

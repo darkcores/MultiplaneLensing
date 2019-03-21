@@ -13,7 +13,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
         fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
                 line);
         if (abort)
-            throw(code);
+            throw((int)code);
     }
 }
 
