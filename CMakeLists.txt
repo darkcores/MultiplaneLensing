@@ -23,9 +23,11 @@ set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --m
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 enable_testing()
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
+find_package(GTest)
+if (GTest)
+    include_directories(${GTEST_INCLUDE_DIRS})
+	subdirs(tests)
+endif()
 
 subdirs(src)
-subdirs(tests)
 subdirs(example)
