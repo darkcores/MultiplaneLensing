@@ -1,0 +1,19 @@
+stages:
+    - test
+    - build
+
+format:
+    stage: test
+    script:
+      - cmake CMakeLists.txt
+      - make
+      - make test
+
+compile:
+    stage: build
+    script:
+      - cmake CMakeLists.txt
+      - make
+    artifacts:
+      paths:
+        - bin/example
