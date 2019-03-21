@@ -1,19 +1,28 @@
 stages:
-    - test
     - build
-
-format:
-    stage: test
-    script:
-      - cmake CMakeLists.txt
-      - make
-      - make test
+    - test
+    - coverage
 
 compile:
     stage: build
     script:
       - cmake CMakeLists.txt
       - make
-    artifacts:
-      paths:
-        - bin/example
+
+tests:
+    stage: test
+    script:
+      - cmake CMakeLists.txt
+      - make
+      - ./bin/unit_tests
+      - ./bin/cu_unit_tests
+
+coverage:
+    stage: coverage
+    script:
+      - cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=DEBUG
+      - make
+      - mkdir cov
+      - kcov --include-path=./src cov/ bin/unit_tests
+      - kcov --include-path=./src cov/ bin/unit_tests
+      - cat cov/kcov-merged/coverage.json
