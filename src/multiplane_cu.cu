@@ -189,23 +189,7 @@ int MultiPlaneContext::calculatePositions(
     }
 }
 
-const std::vector<Vector2D<float>>
-&MultiPlaneContext::getSourcePositions(int idx) const {
-    /*
-std::vector<Vector2D<float>> src_pos;
-src_pos.reserve(m_theta_len);
-std::vector<float> beta_x(m_theta_len);
-std::vector<float> beta_y(m_theta_len);
-gpuErrchk(cudaMemcpy(&beta_x[0], &m_beta_x[idx * m_theta_len],
-                     sizeof(float) * m_theta_len, cudaMemcpyDeviceToHost));
-gpuErrchk(cudaMemcpy(&beta_y[0], &m_beta_y[idx * m_theta_len],
-                     sizeof(float) * m_theta_len, cudaMemcpyDeviceToHost));
-// printf("Theta len: %d\n", m_theta_len);
-for (size_t i = 0; i < m_theta_len; i++) {
-    src_pos.push_back(Vector2D<float>(beta_x[i], beta_y[i]) /
-                      m_angularUnit);
-}
-return src_pos;
-    */
+const std::vector<Vector2D<float>> &
+MultiPlaneContext::getSourcePositions(int idx) const {
     return m_betas[idx];
 }
