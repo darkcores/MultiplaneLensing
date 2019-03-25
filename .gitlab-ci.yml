@@ -6,27 +6,22 @@ stages:
 compile:
     stage: build
     script:
-      - cmake cmakelists.txt
-      - make -j4
-    artifacts:
-      paths:
-        - bin/unit_tests
-        - bin/cu_unit_tests
-        - bin/example
+      - cmake CMakeLists.txt
+      - make -j7
 
 tests:
     stage: test
-    dependencies:
-      - compile
     script:
+      - cmake CMakeLists.txt
+      - make -j7
       - ./bin/unit_tests
       - ./bin/cu_unit_tests
 
 coverage:
     stage: coverage
-    dependencies:
-      - compile
     script:
+      - cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=DEBUG
+      - make -j7
       - mkdir cov
       - kcov --include-path=./src cov/ bin/unit_tests
       - kcov --include-path=./src cov/ bin/cu_unit_tests
