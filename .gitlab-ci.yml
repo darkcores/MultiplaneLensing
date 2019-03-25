@@ -6,13 +6,13 @@ stages:
 compile:
     stage: build
     script:
-      - cmake CMakeLists.txt
+      - cmake cmakelists.txt
       - make -j4
 
 tests:
     stage: test
     dependencies:
-      - build
+      - compile
     script:
       - ./bin/unit_tests
       - ./bin/cu_unit_tests
@@ -20,7 +20,7 @@ tests:
 coverage:
     stage: coverage
     dependencies:
-      - build
+      - compile
     script:
       - mkdir cov
       - kcov --include-path=./src cov/ bin/unit_tests
