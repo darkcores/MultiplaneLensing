@@ -34,6 +34,7 @@ class MultiPlaneContext {
     // Device betas, length is m_theta_len * number of source planes
     float *m_beta_x, *m_beta_y;
     Multiplane *m_multiplane;
+	std::vector<std::vector<Vector2D<float>>> m_betas;
 
     CompositeLensBuilder buildLens(const double Dd,
                                    const std::vector<PlummerParams> &params);
@@ -70,5 +71,5 @@ class MultiPlaneContext {
 
     int calculatePositions(const std::vector<std::vector<double>> &masses);
 
-    const std::vector<Vector2D<float>> getSourcePositions(int idx) const;
+    const std::vector<Vector2D<float>> &getSourcePositions(int idx) const;
 };

@@ -70,6 +70,9 @@ int MultiPlaneContext::init(
         auto plane = planebuilder.getCuMultiPlane();
         memcpy(m_multiplane, &plane, sizeof(Multiplane));
 
+        // Resize list of betas
+        m_betas.resize(sourceRedshifts.size());
+
         return 0;
     } catch (int e) {
         return e;
@@ -99,6 +102,11 @@ int MultiPlaneContext::setThetas(const std::vector<Vector2D<float>> &thetas) {
                              cudaMemcpyHostToDevice));
         gpuErrchk(cudaMemcpy(m_theta_y, &theta_y[0], arr_size,
                              cudaMemcpyHostToDevice));
+
+        // Reserve space for betas
+        for (auto &x : m_betas) {
+            x.reserve(thetas.size());
+        }
 
         return 0;
     } catch (int e) {
@@ -157,6 +165,24 @@ int MultiPlaneContext::calculatePositions(
             m_theta_len, *m_multiplane, m_theta_x, m_theta_y, m_beta_x,
             m_beta_y);
 
+        // Copy results back to host
+        std::vector<float> beta_x(m_theta_len);
+        std::vector<float> beta_y(m_theta_len);
+        for (size_t i = 0; i < m_betas.size(); i++) {
+            m_betas[i].clear();
+            gpuErrchk(cudaMemcpy(&beta_x[0], &m_beta_x[i * m_theta_len],
+                                 sizeof(float) * m_theta_len,
+                                 cudaMemcpyDeviceToHost));
+            gpuErrchk(cudaMemcpy(&beta_y[0], &m_beta_y[i * m_theta_len],
+                                 sizeof(float) * m_theta_len,
+                                 cudaMemcpyDeviceToHost));
+
+            for (size_t j = 0; j < m_theta_len; j++) {
+                m_betas[i].push_back(Vector2D<float>(beta_x[j], beta_y[j]) /
+                                     m_angularUnit);
+            }
+        }
+
         return 0;
     } catch (int e) {
         return e;
@@ -164,19 +190,22 @@ int MultiPlaneContext::calculatePositions(
 }
 
 const std::vector<Vector2D<float>>
-MultiPlaneContext::getSourcePositions(int idx) const {
-    std::vector<Vector2D<float>> src_pos;
-    src_pos.reserve(m_theta_len);
-    std::vector<float> beta_x(m_theta_len);
-    std::vector<float> beta_y(m_theta_len);
-    gpuErrchk(cudaMemcpy(&beta_x[0], &m_beta_x[idx * m_theta_len],
-                         sizeof(float) * m_theta_len, cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaMemcpy(&beta_y[0], &m_beta_y[idx * m_theta_len],
-                         sizeof(float) * m_theta_len, cudaMemcpyDeviceToHost));
-    // printf("Theta len: %d\n", m_theta_len);
-    for (size_t i = 0; i < m_theta_len; i++) {
-        src_pos.push_back(Vector2D<float>(beta_x[i], beta_y[i]) /
-                          m_angularUnit);
-    }
-    return src_pos;
+&MultiPlaneContext::getSourcePositions(int idx) const {
+    /*
+std::vector<Vector2D<float>> src_pos;
+src_pos.reserve(m_theta_len);
+std::vector<float> beta_x(m_theta_len);
+std::vector<float> beta_y(m_theta_len);
+gpuErrchk(cudaMemcpy(&beta_x[0], &m_beta_x[idx * m_theta_len],
+                     sizeof(float) * m_theta_len, cudaMemcpyDeviceToHost));
+gpuErrchk(cudaMemcpy(&beta_y[0], &m_beta_y[idx * m_theta_len],
+                     sizeof(float) * m_theta_len, cudaMemcpyDeviceToHost));
+// printf("Theta len: %d\n", m_theta_len);
+for (size_t i = 0; i < m_theta_len; i++) {
+    src_pos.push_back(Vector2D<float>(beta_x[i], beta_y[i]) /
+                      m_angularUnit);
+}
+return src_pos;
+    */
+    return m_betas[idx];
 }

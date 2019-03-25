@@ -7,13 +7,13 @@ compile:
     stage: build
     script:
       - cmake CMakeLists.txt
-      - make
+      - make -j4
 
 tests:
     stage: test
     script:
       - cmake CMakeLists.txt
-      - make
+      - make -j4
       - ./bin/unit_tests
       - ./bin/cu_unit_tests
 
@@ -21,7 +21,7 @@ coverage:
     stage: coverage
     script:
       - cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=DEBUG
-      - make
+      - make -j4
       - mkdir cov
       - kcov --include-path=./src cov/ bin/unit_tests
       - kcov --include-path=./src cov/ bin/cu_unit_tests
