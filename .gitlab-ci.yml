@@ -8,6 +8,11 @@ compile:
     script:
       - cmake cmakelists.txt
       - make -j4
+    artifacts:
+      paths:
+        - bin/unit_tests
+        - bin/cu_unit_tests
+        - bin/example
 
 tests:
     stage: test
