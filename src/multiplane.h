@@ -43,12 +43,6 @@ class Multiplane {
 
   public:
     /**
-     * New empty source plane, may be removed later.
-     */
-    [[deprecated]] Multiplane()
-        : m_plane_ptr(nullptr), m_src_plane_ptr(nullptr), m_plane_length(0),
-          m_src_length(0) {}
-    /**
      * Create new Multiplane object.
      *
      * @param plane_length Number of lens planes.

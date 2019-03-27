@@ -100,25 +100,6 @@ class CompositeLens {
             auto movedtheta = theta - (cur_data_ptr[i].position);
             alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta * m_scale);
         }
-        // Some other tests with less registers but slower (in certain tests)
-        // Need to try with the rest to see how this performs
-        /*
-        auto cur_ptr = cur_data_ptr;
-        do {
-    auto movedtheta = scaledtheta - (cur_ptr->position * m_scale);
-    alpha += cur_ptr->lens.getAlphaf(movedtheta);
-                // cur_ptr += sizeof(LensData);
-                cur_ptr ++;
-        } while(cur_ptr->notlast);
-        */
-        /*
-        int i = 0;
-        while (cur_data_ptr[i].notlast) {
-    auto movedtheta = scaledtheta - (cur_data_ptr[i].position * m_scale);
-    alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
-                i++;
-        }
-*/
         // theta /= m_scale;
         alpha /= m_scale;
         return alpha;
@@ -181,24 +162,6 @@ class CompositeLens {
     __device__ void setMass(const int i, const double mass) {
         m_data_ptr[i].lens.setMass(mass);
     }
-
-    /*
-__host__ __device__ void setDistance(const double Dd) {
-    for (int i = 0; i < length; i++) {
-        m_data_ptr[i].lens.setDistance(Dd);
-    }
-}
-
-__host__ __device__ void setSource(const double Ds, const double Dds) {
-    m_Ds = Ds;
-    m_Dds = Dds;
-            m_D = Dds / Ds;
-            m_Df = Dds / Ds;
-    for (int i = 0; i < length; i++) {
-        m_data_ptr[i].lens.setSource(Ds, Dds);
-    }
-}
-    */
 };
 
 /**

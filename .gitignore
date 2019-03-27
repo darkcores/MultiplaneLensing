@@ -14,3 +14,5 @@ compile_commands.json
 *.raw
 .cproject
 .project
+.gcno
+.gcda

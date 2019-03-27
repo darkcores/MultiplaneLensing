@@ -102,6 +102,7 @@ class Plummer {
 	 * @param Dd angular distance.
 	 */
     __host__ __device__ void setDistance(const double Dd);
+	
 	/**
 	 * Set the source angular distance.
 	 *
@@ -109,12 +110,14 @@ class Plummer {
 	 * @param Dds lens<->source angular distance.
 	 */
     __host__ __device__ void setSource(const double Ds, const double Dds);
+	
 	/**
 	 * set single precision float scale factor.
 	 *
 	 * @param scale scale factor.
 	 */
     __host__ __device__ void setScale(const float scale);
+	
 	/**
 	 * Set lens mass.
 	 *
