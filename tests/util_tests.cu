@@ -3,6 +3,7 @@
 #include <util/constants.h>
 #include <util/cosmology.h>
 #include <util/vector2d.h>
+#include <util/error.h>
 
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
@@ -29,6 +30,14 @@ __global__ void cosmologycalc(int n, double *redshifts, double *angdists) {
 template <typename T> struct mul {
     __device__ T operator()(const T &x, double y) const { return x * y; }
 };
+
+TEST(UtilCuTests, ErrTests) {
+	try {
+		gpuErrchk((cudaError_t)-1);
+	} catch (int e) {
+		ASSERT_EQ(e, -1);
+	}
+}
 
 TEST(UtilCuTests, ScalingDouble) {
     thrust::host_vector<Vector2D<double>> H(4);

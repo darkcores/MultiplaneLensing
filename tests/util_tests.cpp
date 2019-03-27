@@ -2,7 +2,16 @@
 
 #include <util/constants.h>
 #include <util/cosmology.h>
+#include <util/error.h>
 #include <util/vector2d.h>
+
+TEST(UtilTests, ErrTests) {
+	try {
+		cpuErrchk(NULL);
+	} catch (int e) {
+		ASSERT_EQ(e, -1);
+	}
+}
 
 TEST(UtilTests, Vector2DMul) {
     Vector2D<double> v2d(0.5, 5);
@@ -34,6 +43,7 @@ TEST(UtilTests, CosmologyTest) {
     Cosmology cosm(0.7, 0.3, 0, 0.7);
     auto dist = cosm.angularDiameterDistance(0.0, 1.72);
     const auto cdist = 1745;
-    EXPECT_EQ((int)(dist / DIST_MPC), cdist); // Good enough, don't worry for now
+    EXPECT_EQ((int)(dist / DIST_MPC),
+              cdist); // Good enough, don't worry for now
     // ASSERT_LT(abs(dist - cdist), 1e-20);
 }

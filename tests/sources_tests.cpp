@@ -146,6 +146,14 @@ TEST(MultiplaneTests, TestBefore) {
         pixel = multiplane.traceTheta(p);
         testimg.write((char *)&pixel, sizeof(uint8_t));
     }
+
+    float x, y;
+	Vector2D<float> p(5 * ANGLE_ARCSEC, 5 * ANGLE_ARCSEC);
+	multiplane.traceTheta(p, &x, &y, 1);
+	// EXPECT_EQ(x, 5 * ANGLE_ARCSEC);
+	EXPECT_LT(fabs(x - (5 * ANGLE_ARCSEC)), 1e-12);
+	EXPECT_LT(fabs(y - (5 * ANGLE_ARCSEC)), 1e-12);
+	
 	multiplane.destroy();
 }
 
@@ -193,6 +201,15 @@ TEST(MultiplaneTests, TestBetween) {
         pixel = multiplane.traceTheta(p);
         testimg.write((char *)&pixel, sizeof(uint8_t));
     }
+
+    float x, y;
+	Vector2D<float> p(5 * ANGLE_ARCSEC, 5 * ANGLE_ARCSEC);
+	multiplane.traceTheta(p, &x, &y, 1);
+	// EXPECT_EQ(x, 1.01769e-06);
+	// EXPECT_EQ(y, 1.01769e-06);
+	EXPECT_LT(fabs(x - 1.01769e-06), 1e-10);
+	EXPECT_LT(fabs(y - 1.01769e-06), 1e-10);
+
 	multiplane.destroy();
 }
 
@@ -254,5 +271,19 @@ TEST(MultiplaneTests, TestMulti) {
         pixel = multiplane.traceTheta(p);
         testimg.write((char *)&pixel, sizeof(uint8_t));
     }
+
+    float x[3], y[3];
+	float s =  5 * ANGLE_ARCSEC;
+	float xv[3] = { s, 1.01769e-06, 5.92397e-05 };
+	float yv[3] = { s, 1.01769e-06, 5.92397e-05 };
+	Vector2D<float> p(5 * ANGLE_ARCSEC, 5 * ANGLE_ARCSEC);
+	multiplane.traceTheta(p, x, y, 1);
+	for (int i = 0; i < 3; i++) {
+		// EXPECT_EQ(x[i], xv[i]);
+		EXPECT_LT(fabs(x[i] - xv[i]), 1e-10);
+		// EXPECT_EQ(y[i], yv[i]);
+		EXPECT_LT(fabs(y[i] - yv[i]), 1e-10);
+	}
+	
 	multiplane.destroy();
 }
