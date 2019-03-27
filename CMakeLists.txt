@@ -4,6 +4,9 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 set(default_build_type "RELEASE")
 
 SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pipe ")
+if (COVERAGE)
+  SET(GCC_FLAGS "-std=c++14 -O0 -Wall -Wextra")
+endif()
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)

@@ -30,27 +30,6 @@ Plummer::getBeta(Vector2D<double> theta) const {
     return beta;
 }
 
-#ifdef NODEF
-__host__ __device__ Vector2D<float>
-Plummer::getAlphaf(const Vector2D<float> &theta) const {
-    // theta * m_scale;
-    auto alpha = theta / (theta.lengthSq() + m_angularwidth2_f);
-    alpha *= m_4GM_f;
-    // alpha /= m_scale;
-    return alpha;
-}
-
-__host__ __device__ Vector2D<float>
-Plummer::getBetaf(const Vector2D<float> &theta) const {
-    // theta *= m_scale;
-    auto beta = theta / (theta.lengthSq() + m_angularwidth2_f);
-    beta *= m_4GM_s_f;
-    beta = theta - beta;
-    // beta /= m_scale;
-    return beta;
-}
-#endif
-
 __host__ __device__ void Plummer::setDistance(const double Dd) {
     m_Dd = Dd;
     m_4GM = (4 * CONST_G * m_mass) / (SPEED_C * SPEED_C * m_Dd);

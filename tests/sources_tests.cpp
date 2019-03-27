@@ -86,7 +86,7 @@ TEST(MultiplaneTests, TestBetaf) {
         thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
                   Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC));
 
-    std::ofstream testimg("testimage.raw", std::ios::binary);
+    std::ofstream testimg("/tmp/testimage.raw", std::ios::binary);
     for (auto &p : points) {
         pixel = multiplane.traceTheta(p);
         testimg.write((char *)&pixel, sizeof(uint8_t));
@@ -99,5 +99,160 @@ TEST(MultiplaneTests, TestBetaf) {
     // }
     // EXPECT_EQ(beta.x(), -5.82627194e-06);
     // EXPECT_EQ(beta.y(), -1.10613056e-05);
+	multiplane.destroy();
+}
+
+TEST(MultiplaneTests, TestBefore) {
+    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    double z_d1 = 0.4;
+    double z_d2 = 0.8;
+    double z_s = 0.2;
+    auto Dd1 = cosm.angularDiameterDistance(z_d1);
+    auto Dd2 = cosm.angularDiameterDistance(z_d2);
+
+    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder.setRedshift(z_d1);
+    // auto lens1 = lensbuilder.getLens();
+    auto lensbuilder2 = createGrid(Dd2, 6, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder2.setRedshift(z_d2);
+    // auto lens2 = lensbuilder.getLens();
+
+    MultiplaneBuilder planebuilder(cosm);
+    planebuilder.addPlane(lensbuilder);
+    planebuilder.addPlane(lensbuilder2);
+
+    SourcePlaneBuilder sourcebuilder(z_s);
+    sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    auto sourceplane = sourcebuilder.getPlane();
+    planebuilder.addSourcePlane(sourceplane);
+
+    auto multiplane = planebuilder.getMultiPlane();
+
+    // std::cout << "Setup done" << std::endl;
+
+    Vector2D<float> point(1 * ANGLE_ARCSEC, 1 * ANGLE_ARCSEC);
+    auto pixel = multiplane.traceTheta(point);
+    ASSERT_EQ(pixel, 0);
+
+    auto points =
+        thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
+                  Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC), 10, 10);
+
+    std::ofstream testimg("/tmp/testbefore.raw", std::ios::binary);
+    for (auto &p : points) {
+        pixel = multiplane.traceTheta(p);
+        testimg.write((char *)&pixel, sizeof(uint8_t));
+    }
+	multiplane.destroy();
+}
+
+TEST(MultiplaneTests, TestBetween) {
+    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    double z_d1 = 0.4;
+    double z_d2 = 0.8;
+    double z_s = 0.6;
+    auto Dd1 = cosm.angularDiameterDistance(z_d1);
+    auto Dd2 = cosm.angularDiameterDistance(z_d2);
+
+    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder.setRedshift(z_d1);
+    // auto lens1 = lensbuilder.getLens();
+    auto lensbuilder2 = createGrid(Dd2, 6, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder2.setRedshift(z_d2);
+    // auto lens2 = lensbuilder.getLens();
+
+    MultiplaneBuilder planebuilder(cosm);
+    planebuilder.addPlane(lensbuilder);
+    planebuilder.addPlane(lensbuilder2);
+
+    SourcePlaneBuilder sourcebuilder(z_s);
+    sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    auto sourceplane = sourcebuilder.getPlane();
+    planebuilder.addSourcePlane(sourceplane);
+
+    auto multiplane = planebuilder.getMultiPlane();
+
+    // std::cout << "Setup done" << std::endl;
+
+    Vector2D<float> point(1 * ANGLE_ARCSEC, 1 * ANGLE_ARCSEC);
+    auto pixel = multiplane.traceTheta(point);
+    ASSERT_EQ(pixel, 0);
+
+    auto points =
+        thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
+                  Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC), 10, 10);
+
+    std::ofstream testimg("/tmp/testbetween.raw", std::ios::binary);
+    for (auto &p : points) {
+        pixel = multiplane.traceTheta(p);
+        testimg.write((char *)&pixel, sizeof(uint8_t));
+    }
+	multiplane.destroy();
+}
+
+TEST(MultiplaneTests, TestMulti) {
+    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    double z_d1 = 0.4;
+    double z_d2 = 0.8;
+    double z_s1 = 0.2;
+	double z_s2 = 0.6;
+	double z_s3 = 2.0;
+    auto Dd1 = cosm.angularDiameterDistance(z_d1);
+    auto Dd2 = cosm.angularDiameterDistance(z_d2);
+
+    auto lensbuilder = createGrid(Dd1, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder.setRedshift(z_d1);
+    // auto lens1 = lensbuilder.getLens();
+    auto lensbuilder2 = createGrid(Dd2, 6, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
+                                   5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
+    lensbuilder2.setRedshift(z_d2);
+    // auto lens2 = lensbuilder.getLens();
+
+    MultiplaneBuilder planebuilder(cosm);
+    planebuilder.addPlane(lensbuilder);
+    planebuilder.addPlane(lensbuilder2);
+
+    SourcePlaneBuilder sourcebuilder(z_s1);
+    sourcebuilder.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    auto sourceplane = sourcebuilder.getPlane();
+    planebuilder.addSourcePlane(sourceplane);
+
+    SourcePlaneBuilder sourcebuilder2(z_s2);
+    sourcebuilder2.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    auto sourceplane2 = sourcebuilder2.getPlane();
+    planebuilder.addSourcePlane(sourceplane2);
+
+    SourcePlaneBuilder sourcebuilder3(z_s3);
+    sourcebuilder3.addPoint(Vector2D<float>(1 * ANGLE_ARCSEC, -2 * ANGLE_ARCSEC),
+                           1 * ANGLE_ARCSEC);
+    auto sourceplane3 = sourcebuilder3.getPlane();
+    planebuilder.addSourcePlane(sourceplane3);
+
+    auto multiplane = planebuilder.getMultiPlane();
+
+    // std::cout << "Setup done" << std::endl;
+
+    Vector2D<float> point(1 * ANGLE_ARCSEC, 1 * ANGLE_ARCSEC);
+    auto pixel = multiplane.traceTheta(point);
+    ASSERT_EQ(pixel, 0);
+
+    auto points =
+        thetaGrid(Vector2D<float>(-30 * ANGLE_ARCSEC, 30 * ANGLE_ARCSEC),
+                  Vector2D<float>(30 * ANGLE_ARCSEC, -30 * ANGLE_ARCSEC), 10, 10);
+
+    std::ofstream testimg("/tmp/testmulti.raw", std::ios::binary);
+    for (auto &p : points) {
+        pixel = multiplane.traceTheta(p);
+        testimg.write((char *)&pixel, sizeof(uint8_t));
+    }
 	multiplane.destroy();
 }
