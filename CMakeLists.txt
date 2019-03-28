@@ -20,7 +20,10 @@ check_include_file(getopt.h HAVE_GETOPT_H)
 
 include(CheckLanguage)
 check_language(CUDA)
-set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=32 -lineinfo -prec-div=false")
+set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=32 -lineinfo")
+# -ftz=true
+# -prec-div=false
+# -prec-sqrt=false
 # set(CMAKE_CUDA_FLAGS "--default-stream per-thread -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_60,code=sm_60 -Xcompiler -fopenmp")
 
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

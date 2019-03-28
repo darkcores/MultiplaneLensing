@@ -57,7 +57,7 @@ CompositeLens CompositeLensBuilder::getLens() {
 
 CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
                              LensData *data_ptr, size_t size, float scale,
-                             bool cuda)
+                             bool cuda, MiniData *md)
     : cur_data_ptr(data_ptr) {
     m_Dd = Dd;
     m_Ds = Ds;
@@ -70,4 +70,5 @@ CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
     m_data_ptr = data_ptr;
     length = size;
     m_cuda = cuda;
+	m_mini_data_ptr = md;
 }

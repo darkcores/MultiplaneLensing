@@ -7,6 +7,27 @@
 #include <memory>
 #include <utility>
 
+class MiniData {
+  public:
+    MiniPlummer lens;
+#ifdef __CUDACC__
+    float2 position;
+#else
+    Vector2D<float> position;
+#endif
+
+    __host__ __device__ MiniData() {}
+    __host__ __device__ MiniData(MiniPlummer &l, Vector2D<float> &pos) {
+#ifdef __CUDACC__
+        position.x = pos.x();
+        position.y = pos.y();
+#else
+        position = pos;
+#endif
+        lens = l;
+    }
+};
+
 /**
  * Data for lens with position.
  */
@@ -19,11 +40,11 @@ class LensData {
     /**
      * Position for the Plummer lens.
      */
-	#ifdef __CUDACC__
-	float2 position;
-	#else
+#ifdef __CUDACC__
+    float2 position;
+#else
     Vector2D<float> position;
-	#endif
+#endif
     // bool notlast;
     /**
      * Create new LensData.
@@ -32,12 +53,12 @@ class LensData {
      * @param pos Position.
      */
     LensData(const Plummer &l, const Vector2D<float> &pos) {
-		#ifdef __CUDACC__
-		position.x = pos.x();
-		position.y = pos.y();
-		#else
+#ifdef __CUDACC__
+        position.x = pos.x();
+        position.y = pos.y();
+#else
         position = pos;
-		#endif
+#endif
         lens = l;
         // notlast = true;
     }
@@ -59,6 +80,7 @@ class CompositeLens {
     float m_Df;
     float m_scale, m_scale_inv;
     LensData *__restrict__ m_data_ptr;
+    MiniData *__restrict__ m_mini_data_ptr;
     const LensData *__restrict__ cur_data_ptr;
     int length;
     bool m_cuda;
@@ -76,7 +98,7 @@ class CompositeLens {
      */
     CompositeLens(const double Dd, const double Ds, const double Dds,
                   LensData *data_ptr, size_t size, float scale = 60,
-                  bool cuda = false);
+                  bool cuda = false, MiniData *md = nullptr);
     // __device__ CompositeLens() : cur_data_ptr(nullptr) {}
 
     /**
@@ -130,14 +152,14 @@ class CompositeLens {
      */
     __host__ __device__ float2 getAlphaf(const float2 &theta) const {
         float2 alpha, movedtheta;
-        LensData ld;
+        MiniData ld;
         alpha.x = 0;
         alpha.y = 0;
-		#ifdef __CUDA_ARCH__
-		#pragma unroll 16
-		#endif
+#ifdef __CUDA_ARCH__
+#pragma unroll 16
+#endif
         for (int i = 0; i < length; i++) {
-            ld = cur_data_ptr[i];
+            ld = m_mini_data_ptr[i];
             movedtheta = theta;
             movedtheta.x *= m_scale;
             movedtheta.y *= m_scale;
@@ -220,6 +242,7 @@ class CompositeLens {
      */
     __device__ void setMass(const int i, const double mass) {
         m_data_ptr[i].lens.setMass(mass);
+        m_mini_data_ptr[i].lens = m_data_ptr[i].lens.getMini();
     }
 };
 

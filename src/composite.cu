@@ -6,6 +6,7 @@ int CompositeLens::destroy() {
     if (m_data_ptr) {
         if (m_cuda) {
             gpuErrchk(cudaFree(m_data_ptr));
+            gpuErrchk(cudaFree(m_mini_data_ptr));
         } else {
             free(m_data_ptr);
         }
@@ -15,6 +16,7 @@ int CompositeLens::destroy() {
 }
 
 CompositeLens CompositeLensBuilder::getCuLens() {
+	MiniData *md = nullptr;
 #ifdef __CUDACC__
     // m_lenses.push_back(LensData());
     // dev_m_lenses = m_lenses;
@@ -27,10 +29,19 @@ CompositeLens CompositeLensBuilder::getCuLens() {
     gpuErrchk(cudaMalloc(&lens_ptr, sizeof(LensData) * size));
     gpuErrchk(cudaMemcpy(lens_ptr, &m_lenses[0], sizeof(LensData) * size,
                          cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMalloc(&md, sizeof(MiniData) * size));
+	std::vector<MiniData> miniprep;
+	for (auto &x : m_lenses) {
+		MiniData d;
+		d.position = x.position;
+		miniprep.push_back(d);
+	}
+    gpuErrchk(cudaMemcpy(md, &miniprep[0], sizeof(MiniData) * size,
+                         cudaMemcpyHostToDevice));
 #else
     CompositeLens *lens_ptr = nullptr;
 #endif
-    return CompositeLens(m_Dd, m_Ds, m_Dds, lens_ptr, size, m_scale, true);
+    return CompositeLens(m_Dd, m_Ds, m_Dds, lens_ptr, size, m_scale, true, md);
 }
 
 #ifdef NOTHING

@@ -3,6 +3,40 @@
 #include "util/vector2d.h"
 #include <cstdio>
 
+class MiniPlummer {
+  private:
+    float m_angularwidth2_f, m_4GM_f;
+
+  public:
+    __host__ __device__ MiniPlummer() {}
+    __host__ __device__ MiniPlummer(float GM, float angwidth) {
+        m_angularwidth2_f = angwidth;
+        m_4GM_f = GM;
+    }
+
+#ifdef __CUDACC__
+    /**
+     * Get alpha vector (single precision, with scaling). For scaling
+     * see setScale().
+     *
+     * @param theta Theta vector.
+     * @returns Alpha vector.
+     */
+    __host__ __device__ float2 getAlphaf(const float2 &theta) const {
+        // printf("Scale factor plummer %f\n", m_scale);
+        auto alpha = theta;
+        float len = (theta.x * theta.x) + (theta.y * theta.y);
+        len += m_angularwidth2_f;
+        len = 1 / len;
+        alpha.x *= len;
+        alpha.y *= len;
+        alpha.x *= m_4GM_f;
+        alpha.y *= m_4GM_f;
+        return alpha;
+    }
+#endif
+};
+
 /**
  * Plummer lens class.
  */
@@ -63,7 +97,7 @@ class Plummer {
         return beta;
     }
 
-	#ifdef __CUDACC__
+#ifdef __CUDACC__
     /**
      * Get alpha vector (single precision, with scaling). For scaling
      * see setScale().
@@ -71,19 +105,19 @@ class Plummer {
      * @param theta Theta vector.
      * @returns Alpha vector.
      */
-    __host__ __device__ float2
-    getAlphaf(const float2 &theta) const {
+    __host__ __device__ float2 getAlphaf(const float2 &theta) const {
         // printf("Scale factor plummer %f\n", m_scale);
         auto alpha = theta;
-		float len = (theta.x * theta.x) + (theta.y * theta.y);
-		len += m_angularwidth2_f;
-        alpha.x /= len;
-        alpha.y /= len;
+        float len = (theta.x * theta.x) + (theta.y * theta.y);
+        len += m_angularwidth2_f;
+        len = 1 / len;
+        alpha.x *= len;
+        alpha.y *= len;
         alpha.x *= m_4GM_f;
         alpha.y *= m_4GM_f;
         return alpha;
     }
-	#endif
+#endif
 
     /**
      * Get beta vector (single precision, with scaling). For scaling
@@ -132,4 +166,8 @@ class Plummer {
      * @param mass new lens mass.
      */
     __host__ __device__ void setMass(const double mass);
+
+    __host__ __device__ MiniPlummer getMini() const {
+        return MiniPlummer(m_4GM_f, m_angularwidth2_f);
+    }
 };
