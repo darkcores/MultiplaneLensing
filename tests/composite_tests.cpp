@@ -27,41 +27,6 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
     return lensbuilder;
 }
 
-TEST(CompositeTests, TestAlpha) {
-    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
-    double z_d = 0.4;
-    auto Dd = cosm.angularDiameterDistance(z_d);
-    auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
-    auto lens = lensbuilder.getLens();
-    Vector2D<double> point(1 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC);
-    auto alpha = lens.getAlpha(point);
-    // EXPECT_EQ(alpha.x(), 2.01259882e-05);
-    // EXPECT_EQ(alpha.y(), 3.91372304e-05);
-    EXPECT_LT(abs(alpha.x() - 2.01259882e-05), 1e-11);
-    EXPECT_LT(abs(alpha.y() - 3.91372304e-05), 1e-11);
-    lens.destroy();
-}
-
-TEST(CompositeTests, TestBeta) {
-    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
-    double z_d = 0.4;
-    double z_s = 1.0;
-    auto Dd = cosm.angularDiameterDistance(z_d);
-    auto Ds = cosm.angularDiameterDistance(z_s);
-    auto Dds = cosm.angularDiameterDistance(z_d, z_s);
-    auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
-    auto lens = lensbuilder.getLens();
-    Vector2D<double> point(1 * ANGLE_ARCSEC, 2 * ANGLE_ARCSEC);
-    auto beta = lens.getBeta(point);
-    // EXPECT_EQ(beta.x(), -5.82627194e-06);
-    // EXPECT_EQ(beta.y(), -1.10613056e-05);
-    EXPECT_LT(abs(beta.x() + 5.82627194e-06), 1e-11);
-    EXPECT_LT(abs(beta.y() + 1.10613056e-05), 1e-11);
-    lens.destroy();
-}
-
 TEST(CompositeTests, TestAlphaf) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d = 0.4;

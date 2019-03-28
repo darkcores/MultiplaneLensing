@@ -33,41 +33,61 @@ CompositeLens CompositeLensBuilder::getCuLens() {
     return CompositeLens(m_Dd, m_Ds, m_Dds, lens_ptr, size, m_scale, true);
 }
 
-__host__ __device__ Vector2D<double>
-CompositeLens::getAlpha(Vector2D<double> theta) const {
-    Vector2D<double> alpha(0, 0);
-    for (size_t i = 0; i < length; i++) {
-        auto movedtheta = theta - cur_data_ptr[i].position;
-        alpha += cur_data_ptr[i].lens.getAlpha(movedtheta);
+#ifdef NOTHING
+__global__ void sumalphas(const int n, const float2 theta, float2 sum,
+                          const LensData *__restrict__ cur_data_ptr,
+                          const float m_scale) {
+    __shared__ float2 blocksum;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        if (threadIdx.x == 0) {
+            blocksum.x = 0;
+            blocksum.y = 0;
+        }
+        LensData ld = cur_data_ptr[i];
+        float2 movedtheta = theta;
+        movedtheta.x *= m_scale;
+        movedtheta.y *= m_scale;
+        movedtheta.x -= ld.position.x;
+        movedtheta.y -= ld.position.y;
+        movedtheta = ld.lens.getAlphaf(movedtheta);
+        atomicAdd(&blocksum.x, movedtheta.x);
+        atomicAdd(&blocksum.y, movedtheta.y);
+        if (threadIdx.x == 0) {
+            // atomicAdd(&(sum->x), blocksum.x);
+            // atomicAdd(&(sum->y), blocksum.y);
+        }
     }
-    return alpha;
 }
 
-__host__ __device__ Vector2D<double>
-CompositeLens::getBeta(Vector2D<double> theta) const {
-    Vector2D<double> beta;
-    beta = theta - getAlpha(theta) * m_D;
-    return beta;
-}
-
-/*
-__host__ __device__ Vector2D<float>
-CompositeLens::getAlphaf(Vector2D<float> theta) const {
-    theta *= m_scale;
-    Vector2D<float> alpha(0, 0);
-    for (size_t i = 0; i < length; i++) {
-        auto movedtheta = theta - (cur_data_ptr[i].position * m_scale);
-        alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
+float2 CompositeLens::getAlphaf(const float2 &theta) const {
+    float2 alpha, movedtheta;
+    LensData ld;
+    alpha.x = 0;
+    alpha.y = 0;
+    /*
+#ifdef __CUDA_ARCH__
+sumalphas<<<(length / 64) + 1, 64>>>(length, theta, alpha,
+                                 cur_data_ptr, m_scale);
+#endif
+    */
+#ifdef __CUDA_ARCH__
+#pragma unroll 16
+#endif
+    for (int i = 0; i < length; i++) {
+        ld = cur_data_ptr[i];
+        movedtheta = theta;
+        movedtheta.x *= m_scale;
+        movedtheta.y *= m_scale;
+        movedtheta.x -= ld.position.x;
+        movedtheta.y -= ld.position.y;
+        movedtheta = ld.lens.getAlphaf(movedtheta);
+        alpha.x += movedtheta.x;
+        alpha.y += movedtheta.y;
     }
     // theta /= m_scale;
-    alpha /= m_scale;
+    alpha.x /= m_scale;
+    alpha.y /= m_scale;
     return alpha;
 }
-
-__host__ __device__ Vector2D<float>
-CompositeLens::getBetaf(Vector2D<float> theta) const {
-    Vector2D<float> beta;
-    beta = theta - getAlphaf(theta) * m_Df;
-    return beta;
-}
-*/
+#endif

@@ -26,6 +26,7 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
     return lensbuilder;
 }
 
+/*
 __global__ void alphatest(int n, CompositeLens *lens,
                           Vector2D<double> *alphas) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -38,6 +39,7 @@ __global__ void betatest(int n, CompositeLens *lens, Vector2D<double> *betas) {
     Vector2D<double> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
     betas[i] = lens->getBeta(vec);
 }
+*/
 
 __global__ void betaftest(int n, const CompositeLens *const __restrict__ lens,
                           const float *__restrict__ thetax,
@@ -49,63 +51,6 @@ __global__ void betaftest(int n, const CompositeLens *const __restrict__ lens,
     auto betas = lens->getBetaf(vec, Ds, Dds);
     betax[i] = betas.x();
     betay[i] = betas.y();
-}
-
-TEST(CompositeCuTests, TestAlpha) {
-    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
-    double z_d = 0.4;
-    auto Dd = cosm.angularDiameterDistance(z_d);
-    auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR);
-    // lens.prepare();
-    thrust::device_vector<CompositeLens> dv;
-	auto lens = lensbuilder.getCuLens();
-    dv.push_back(lens);
-    auto l_ptr = thrust::raw_pointer_cast(&dv[0]);
-
-    thrust::device_vector<Vector2D<double>> alphas(1048576);
-    auto a_ptr = thrust::raw_pointer_cast(&alphas[0]);
-
-    alphatest<<<1048576 / 256, 256>>>(1048576, l_ptr, a_ptr);
-    thrust::host_vector<Vector2D<double>> h_alphas(alphas);
-
-    /*
-    auto tlens = lensbuilder.getLens();
-for (int i = 0; i < 128; i += 64) {
-    for (int j = 0; j < 64; j++) {
-        int idx = i + j;
-        Vector2D<double> vec((idx % 7) * ANGLE_ARCSEC,
-                             (idx % 5) * ANGLE_ARCSEC);
-        Vector2D<double> result = tlens.getAlpha(vec);
-        EXPECT_EQ(h_alphas[idx], result);
-    }
-}
-    */
-	lens.destroy();
-}
-
-TEST(CompositeCuTests, TestBeta) {
-    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
-    double z_d = 0.4;
-    double z_s = 1.0;
-    auto Dd = cosm.angularDiameterDistance(z_d);
-    auto Ds = cosm.angularDiameterDistance(z_s);
-    auto Dds = cosm.angularDiameterDistance(z_d, z_s);
-    auto lensbuilder = createGrid(Dd, 3, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
-    auto lens = lensbuilder.getCuLens();
-
-    thrust::device_vector<CompositeLens> dv;
-    dv.push_back(lensbuilder.getCuLens());
-    auto l_ptr = thrust::raw_pointer_cast(&dv[0]);
-
-    thrust::device_vector<Vector2D<double>> betas(1048576);
-    auto b_ptr = thrust::raw_pointer_cast(&betas[0]);
-
-    betatest<<<1048576 / 256, 256>>>(1048576, l_ptr, b_ptr);
-    thrust::host_vector<Vector2D<double>> h_betas(betas);
-	
-	lens.destroy();
 }
 
 TEST(CompositeCuTests, TestBetaF) {

@@ -29,10 +29,12 @@ class MultiPlaneContext {
     const double m_angularUnit;
     const Cosmology m_cosmology;
     // Device thetas
-    float *m_theta_x, *m_theta_y;
+    // float *m_theta_x, *m_theta_y;
+	Vector2D<float> *m_theta;
     size_t m_theta_len;
     // Device betas, length is m_theta_len * number of source planes
-    float *m_beta_x, *m_beta_y;
+    // float *m_beta_x, *m_beta_y;
+	Vector2D<float> *m_beta;
     Multiplane *m_multiplane;
 	std::vector<std::vector<Vector2D<float>>> m_betas;
 

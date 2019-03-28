@@ -8,6 +8,7 @@
 #include <thrust/functional.h>
 #include <thrust/host_vector.h>
 
+/*
 __global__ void alphaCalc(int n, Vector2D<double> *data) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     Vector2D<double> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
@@ -19,13 +20,16 @@ __global__ void alphaCalc(int n, Vector2D<double> *data) {
 
     data[i] = plum.getAlpha(vec);
 }
+*/
 
 TEST(PlummerCuTests, TestAlpha) {
     // Mostly to verify it runs on GPU
+	/*
     thrust::device_vector<Vector2D<double>> alphas(1024);
     auto a_ptr = thrust::raw_pointer_cast(&alphas[0]);
     alphaCalc<<<1024 / 64, 64>>>(1024, a_ptr);
     thrust::host_vector<Vector2D<double>> h_alphas(alphas);
+	*/
 
     /*
      * The following block is mostly the same but there are some small

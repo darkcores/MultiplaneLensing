@@ -1,12 +1,12 @@
 #include "composite.h"
-#include <iostream>
+#include "util/error.h"
 #include <cstdlib>
 #include <cstring>
-#include "util/error.h"
+#include <iostream>
 
 void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
     lens.setScale(m_scale);
-    m_lenses.push_back(LensData(lens, position));
+    m_lenses.push_back(LensData(lens, position * m_scale));
 }
 
 void CompositeLensBuilder::clear() { m_lenses.clear(); }
@@ -31,23 +31,27 @@ void CompositeLensBuilder::setScale(const float scale) {
     for (size_t i = 0; i < m_lenses.size(); i++) {
         m_lenses[i].lens.setScale(scale);
         // m_lenses[i].position /= m_scale;
-        // m_lenses[i].position *= scale;
+#ifdef __CUDACC__
+        m_lenses[i].position.x *= scale / m_scale;
+        m_lenses[i].position.y *= scale / m_scale;
+#else
+        m_lenses[i].position *= scale / m_scale;
+#endif
     }
     m_scale = scale;
 }
 
 CompositeLens CompositeLensBuilder::getLens() {
     // m_lenses.push_back(LensData());
-	size_t size = sizeof(LensData) * m_lenses.size();
-	if (size == 0) {
-		std::cerr << "No lenses added" << std::endl;
-		std::terminate();
-	}
-	lens_ptr = (LensData *)malloc(size);
-	cpuErrchk(lens_ptr);
-	std::memcpy(lens_ptr, &m_lenses[0], size);
-    CompositeLens lens(m_Dd, m_Ds, m_Dds, lens_ptr, m_lenses.size(),
-                       m_scale);
+    size_t size = sizeof(LensData) * m_lenses.size();
+    if (size == 0) {
+        std::cerr << "No lenses added" << std::endl;
+        std::terminate();
+    }
+    lens_ptr = (LensData *)malloc(size);
+    cpuErrchk(lens_ptr);
+    std::memcpy(lens_ptr, &m_lenses[0], size);
+    CompositeLens lens(m_Dd, m_Ds, m_Dds, lens_ptr, m_lenses.size(), m_scale);
     return lens;
 }
 
@@ -61,8 +65,9 @@ CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
     m_D = m_Dds / m_Ds;
     m_Df = m_Dds / m_Ds;
     m_scale = scale;
+    m_scale_inv = 1 / scale;
     // cur_data_ptr = data_ptr;
     m_data_ptr = data_ptr;
     length = size;
-	m_cuda = cuda;
+    m_cuda = cuda;
 }
