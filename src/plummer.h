@@ -168,6 +168,6 @@ class Plummer {
     __host__ __device__ void setMass(const double mass);
 
     __host__ __device__ MiniPlummer getMini() const {
-        return MiniPlummer(m_4GM_f, m_angularwidth2_f);
+        return MiniPlummer(m_4GM_f, m_angularwidth * m_angularwidth);
     }
 };

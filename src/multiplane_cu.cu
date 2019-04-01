@@ -45,8 +45,8 @@ MultiPlaneContext::buildLens(const double Dd,
                              const std::vector<PlummerParams> &params) {
     CompositeLensBuilder builder;
     for (auto &param : params) {
-        auto position = param.position * m_angularUnit;
-        Plummer plum(Dd, param.mass, param.angularwidth * m_angularUnit);
+        auto position = param.position;
+        Plummer plum(Dd, param.mass, param.angularwidth);
         builder.addLens(plum, position);
     }
     return builder;
@@ -63,7 +63,7 @@ int MultiPlaneContext::init(
         for (size_t i = 0; i < lensRedshifts.size(); i++) {
             double Dd = m_cosmology.angularDiameterDistance(lensRedshifts[i]);
             auto lens = buildLens(Dd, params[i]);
-            lens.setScale(3600);
+            lens.setScale(1 / m_angularUnit);
             lens.setRedshift(lensRedshifts[i]);
             planebuilder.addPlane(lens);
         }
@@ -126,8 +126,8 @@ for (auto &x : m_betas) {
 		tmp.reserve(m_theta_len);
 		for (auto &x : thetas) {
 			float2 f;
-			f.x = x.x() * m_angularUnit;
-			f.y = x.y() * m_angularUnit;
+			f.x = x.x() /* m_angularUnit*/;
+			f.y = x.y() /* m_angularUnit*/;
 			tmp.push_back(f);
 		}
         size_t size = sizeof(Vector2D<float>) * thetas.size();
@@ -203,7 +203,7 @@ int MultiPlaneContext::calculatePositions(
                                  sizeof(float2) * m_theta_len,
                                  cudaMemcpyDeviceToHost));
 			for (auto &x : m_betas[i]) {
-				x /= m_angularUnit;
+				// x /= m_angularUnit;
 			}
         }
 

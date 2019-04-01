@@ -120,9 +120,9 @@ class CompositeLens {
         // printf("Scale factor %f\n", m_scale);
         Vector2D<float> alpha(0, 0);
         for (int i = 0; i < length; i++) {
-            auto movedtheta = theta * m_scale;
+            auto movedtheta = theta;
             movedtheta -= (cur_data_ptr[i].position);
-            // movedtheta *= m_scale;
+            movedtheta *= m_scale;
             alpha += cur_data_ptr[i].lens.getAlphaf(movedtheta);
         }
         // theta /= m_scale;
@@ -161,8 +161,8 @@ class CompositeLens {
         for (int i = 0; i < length; i++) {
             ld = m_mini_data_ptr[i];
             movedtheta = theta;
-            movedtheta.x *= m_scale;
-            movedtheta.y *= m_scale;
+            // movedtheta.x *= m_scale;
+            // movedtheta.y *= m_scale;
             movedtheta.x -= ld.position.x;
             movedtheta.y -= ld.position.y;
             movedtheta = ld.lens.getAlphaf(movedtheta);
@@ -170,8 +170,8 @@ class CompositeLens {
             alpha.y += movedtheta.y;
         }
         // theta /= m_scale;
-        alpha.x *= m_scale_inv;
-        alpha.y *= m_scale_inv;
+        // alpha.x *= m_scale_inv;
+        // alpha.y *= m_scale_inv;
         return alpha;
     }
 

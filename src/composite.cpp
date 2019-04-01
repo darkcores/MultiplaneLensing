@@ -6,7 +6,7 @@
 
 void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
     lens.setScale(m_scale);
-    m_lenses.push_back(LensData(lens, position * m_scale));
+    m_lenses.push_back(LensData(lens, position /* m_scale*/));
 }
 
 void CompositeLensBuilder::clear() { m_lenses.clear(); }
@@ -32,10 +32,10 @@ void CompositeLensBuilder::setScale(const float scale) {
         m_lenses[i].lens.setScale(scale);
         // m_lenses[i].position /= m_scale;
 #ifdef __CUDACC__
-        m_lenses[i].position.x *= scale / m_scale;
-        m_lenses[i].position.y *= scale / m_scale;
+        // m_lenses[i].position.x *= scale / m_scale;
+        // m_lenses[i].position.y *= scale / m_scale;
 #else
-        m_lenses[i].position *= scale / m_scale;
+        // m_lenses[i].position *= scale / m_scale;
 #endif
     }
     m_scale = scale;
