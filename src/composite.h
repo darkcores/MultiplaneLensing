@@ -11,10 +11,52 @@ class CompositeLens {
 
   public:
     CompositeLens(Plummer *lenses, const int lenses_size,
-                  const bool cuda = true)
+                  const bool cuda = false)
         : m_lenses(lenses), m_lenses_size(lenses_size), m_cuda(cuda) {}
 
     int destroy();
+
+	__host__ void update(const float *__restrict__ factors) {
+		for (int i = 0; i < m_lenses_size; i++) {
+			m_lenses[i].update(factors[i]);
+		}
+	}
+
+	__device__ void update(const float &factor, const int idx) {
+		m_lenses[idx].update(factor);
+	}
+	
+#ifdef __CUDACC__
+    /**
+     * Get alpha vector (single precision, with scaling).
+     *
+     * @param theta Theta vector.
+     * @returns Alpha vector.
+     */
+    __host__ __device__ float2 getAlpha(const float2 &theta) const {
+        float2 alpha, movedtheta;
+        alpha.x = 0;
+        alpha.y = 0;
+#ifdef __CUDA_ARCH__
+#pragma unroll 16
+#endif
+        for (int i = 0; i < m_lenses_size; i++) {
+            movedtheta = m_lenses[i].getAlpha(theta);
+            alpha.x += movedtheta.x;
+            alpha.y += movedtheta.y;
+        }
+        return alpha;
+    }
+#else
+	__host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
+		Vector2D<float> alpha(0, 0), movedtheta;
+        for (int i = 0; i < m_lenses_size; i++) {
+            movedtheta = m_lenses[i].getAlpha(theta);
+			alpha += movedtheta;
+		}
+		return alpha;
+	}
+#endif
 };
 
 /**
@@ -27,14 +69,12 @@ class CompositeLensBuilder {
     std::vector<Plummer> m_lenses;
 
     float m_redshift;
-    float m_scale;
 
   public:
     /**
      * New CompositeLensBuilder.
      */
-    CompositeLensBuilder(const float scale, const float redshift) {
-        m_scale = scale;
+    CompositeLensBuilder(const float redshift) {
         m_redshift = redshift;
     }
 

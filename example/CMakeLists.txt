@@ -1,9 +1,9 @@
 include_directories("../src/")
 
-add_executable(example
-  example.cpp
-)
+#add_executable(example
+#  example.cpp
+#)
 
-target_link_libraries(example
-  lens_common
-)
+#target_link_libraries(example
+#  lens_common
+#)

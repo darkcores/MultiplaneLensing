@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/constants.h"
 #include "util/vector2d.h"
 
 /**
@@ -26,10 +27,22 @@ class Plummer {
      */
 #ifdef __CUDACC__
     Plummer(const double Dd, const double mass, const double angularwidth,
-            const double scale, const float2 position);
+            const double scale, const float2 position)
+        : m_angularwidth2(angularwidth * angularwidth),
+          m_4GM((4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) *
+                (scale * scale)),
+          m_position(position) {
+        m_4GM_f = m_4GM;
+    }
 #else
     Plummer(const double Dd, const double mass, const double angularwidth,
-            const double scale, const Vector2D<float> position);
+            const double scale, const Vector2D<float> position)
+        : m_angularwidth2(angularwidth * angularwidth),
+          m_4GM((4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) *
+                (scale * scale)),
+          m_position(position) {
+        m_4GM_f = m_4GM;
+    }
 #endif
 
     __host__ __device__ void update(const float scalar) {

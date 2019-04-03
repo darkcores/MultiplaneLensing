@@ -106,13 +106,8 @@ class Multiplane {
 class MultiplaneBuilder {
   private:
     std::vector<CompositeLensBuilder> m_builders;
-    std::vector<PlaneData> m_data;
-    std::vector<SourcePlane> m_src_data;
-
-    bool cuda = false;
-    PlaneData *plane_ptr;
-    SourcePlane *src_ptr;
-    float *z_ptr;
+	std::vector<float> m_source_z;
+	std::vector<std::vector<float>> m_distances;
 
     const Cosmology m_cosm;
 
