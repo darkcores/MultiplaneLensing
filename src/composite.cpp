@@ -4,71 +4,20 @@
 #include <cstring>
 #include <iostream>
 
-void CompositeLensBuilder::addLens(Plummer &lens, Vector2D<float> position) {
-    lens.setScale(m_scale);
-    m_lenses.push_back(LensData(lens, position /* m_scale*/));
-}
-
-void CompositeLensBuilder::clear() { m_lenses.clear(); }
-
-void CompositeLensBuilder::setDistance(const double Dd) {
-    m_Dd = Dd;
-    for (size_t i = 0; i < m_lenses.size(); i++) {
-        m_lenses[i].lens.setDistance(Dd);
-    }
-}
-
-void CompositeLensBuilder::setSource(const double Ds, const double Dds) {
-    m_Ds = Ds;
-    m_Dds = Dds;
-    // std::cout << "Lenses in composite: " << m_lenses.size() << std::endl;
-    for (size_t i = 0; i < m_lenses.size(); i++) {
-        m_lenses[i].lens.setSource(Ds, Dds);
-    }
-}
-
-void CompositeLensBuilder::setScale(const float scale) {
-    for (size_t i = 0; i < m_lenses.size(); i++) {
-        m_lenses[i].lens.setScale(scale);
-        // m_lenses[i].position /= m_scale;
-#ifdef __CUDACC__
-        // m_lenses[i].position.x *= scale / m_scale;
-        // m_lenses[i].position.y *= scale / m_scale;
-#else
-        // m_lenses[i].position *= scale / m_scale;
-#endif
-    }
-    m_scale = scale;
+void CompositeLensBuilder::addLens(const Plummer &lens) {
+    m_lenses.push_back(lens);
 }
 
 CompositeLens CompositeLensBuilder::getLens() {
     // m_lenses.push_back(LensData());
-    size_t size = sizeof(LensData) * m_lenses.size();
+	Plummer *lens_ptr = nullptr;
+    size_t size = sizeof(Plummer) * m_lenses.size();
     if (size == 0) {
         std::cerr << "No lenses added" << std::endl;
         std::terminate();
     }
-    lens_ptr = (LensData *)malloc(size);
+    lens_ptr = (Plummer *)malloc(size);
     cpuErrchk(lens_ptr);
-    std::memcpy(lens_ptr, &m_lenses[0], size);
-    CompositeLens lens(m_Dd, m_Ds, m_Dds, lens_ptr, m_lenses.size(), m_scale);
-    return lens;
-}
-
-CompositeLens::CompositeLens(const double Dd, const double Ds, const double Dds,
-                             LensData *data_ptr, size_t size, float scale,
-                             bool cuda, MiniData *md)
-    : cur_data_ptr(data_ptr) {
-    m_Dd = Dd;
-    m_Ds = Ds;
-    m_Dds = Dds;
-    m_D = m_Dds / m_Ds;
-    m_Df = m_Dds / m_Ds;
-    m_scale = scale;
-    m_scale_inv = 1 / scale;
-    // cur_data_ptr = data_ptr;
-    m_data_ptr = data_ptr;
-    length = size;
-    m_cuda = cuda;
-	m_mini_data_ptr = md;
+    std::memcpy((void *)lens_ptr, &m_lenses[0], size);
+    return CompositeLens(lens_ptr, m_lenses.size());
 }
