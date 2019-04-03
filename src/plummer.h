@@ -27,11 +27,9 @@ class MiniPlummer {
         auto alpha = theta;
         float len = (theta.x * theta.x) + (theta.y * theta.y);
         len += m_angularwidth2_f;
-        len = 1 / len;
+        len = (1 / len) * m_4GM_f;
         alpha.x *= len;
         alpha.y *= len;
-        alpha.x *= m_4GM_f;
-        alpha.y *= m_4GM_f;
         return alpha;
     }
 #endif

@@ -74,13 +74,16 @@ class Multiplane {
     __host__ __device__ void traceTheta(Vector2D<float> theta, float *beta_x,
                                         float *beta_y,
                                         const size_t offset) const;
-	#ifdef __CUDACC__
+#ifdef __CUDACC__
     /**
      * Trace thetas and save positions to multiple source planes
      */
     __host__ __device__ void traceTheta(float2 theta, float2 *beta,
                                         const size_t offset) const;
-	#endif
+
+#endif
+    void traceMultiTheta(const Vector2D<float> *thetas, Vector2D<float> *betas,
+                         const int length, const int plane);
 
     /**
      * Update lens masses (GPU only)

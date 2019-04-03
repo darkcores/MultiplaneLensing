@@ -130,8 +130,8 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
             }
             z_src = m_src_plane_ptr[i_src].redshift();
         }
-		auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-		theta = beta;
+        auto beta = m_plane_ptr[i].lens.getBetaf(theta);
+        theta = beta;
     }
     // Handle remaining source planes
     while (i_src < m_src_length) {
@@ -149,26 +149,27 @@ uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
     return pixel;
 }
 
-void Multiplane::traceTheta(Vector2D<float> theta, float *beta_x,
-                               float *beta_y, const size_t offset) const {
+void Multiplane::traceTheta(Vector2D<float> theta, float *beta_x, float *beta_y,
+                            const size_t offset) const {
     int i_src = 0;
     float z_src = m_src_plane_ptr[i_src].redshift();
     // Draw before any lenses first (TODO)
     float zs = z_src + 10000000;
     if (m_plane_length > 0)
         zs = m_plane_ptr[0].redshift;
-	// printf("Z init vals: %f and %f\n", z_src, zs);
+    // printf("Z init vals: %f and %f\n", z_src, zs);
     while (z_src < zs) {
         // Do source plane(s)
-		// printf("Using theta without lens: [ %f ; %f ]\n", theta.x(), theta.y());
-		*beta_x = theta.x();
-		*beta_y = theta.y();
-		beta_x += offset;
-		beta_y += offset;
+        // printf("Using theta without lens: [ %f ; %f ]\n", theta.x(),
+        // theta.y());
+        *beta_x = theta.x();
+        *beta_y = theta.y();
+        beta_x += offset;
+        beta_y += offset;
         i_src++;
         if (i_src == m_src_length) {
             // No need to continue now
-			return;
+            return;
         }
         z_src = m_src_plane_ptr[i_src].redshift();
     }
@@ -182,35 +183,35 @@ void Multiplane::traceTheta(Vector2D<float> theta, float *beta_x,
             const float Dds = m_src_plane_ptr[i_src].dds();
             const Vector2D<float> s_theta =
                 m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
-			// printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-			// printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-			*beta_x = s_theta.x();
-			*beta_y = s_theta.y();
-			beta_x += offset;
-			beta_y += offset;
+            // printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
+            // printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
+            *beta_x = s_theta.x();
+            *beta_y = s_theta.y();
+            beta_x += offset;
+            beta_y += offset;
             i_src++;
             if (i_src == m_src_length) {
                 // No need to continue now
-				return;
+                return;
             }
             z_src = m_src_plane_ptr[i_src].redshift();
         }
-		auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-		theta = beta;
+        auto beta = m_plane_ptr[i].lens.getBetaf(theta);
+        theta = beta;
     }
-	
+
     // Handle remaining source planes with last lens
     while (i_src < m_src_length) {
         float Ds = m_src_plane_ptr[i_src].ds();
         float Dds = m_src_plane_ptr[i_src].dds();
         Vector2D<float> s_theta =
             m_plane_ptr[m_plane_length - 1].lens.getBetaf(theta, Ds, Dds);
-		// printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-		// printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-		*beta_x = s_theta.x();
-		*beta_y = s_theta.y();
-		beta_x += offset;
-		beta_y += offset;
+        // printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
+        // printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
+        *beta_x = s_theta.x();
+        *beta_y = s_theta.y();
+        beta_x += offset;
+        beta_y += offset;
         i_src++;
     }
 }
@@ -223,16 +224,17 @@ void Multiplane::traceTheta(float2 theta, float2 *beta,
     float zs = z_src + 10000000;
     if (m_plane_length > 0)
         zs = m_plane_ptr[0].redshift;
-	// printf("Z init vals: %f and %f\n", z_src, zs);
+    // printf("Z init vals: %f and %f\n", z_src, zs);
     while (z_src < zs) {
         // Do source plane(s)
-		// printf("Using theta without lens: [ %f ; %f ]\n", theta.x(), theta.y());
-		*beta = theta;
-		beta += offset;
+        // printf("Using theta without lens: [ %f ; %f ]\n", theta.x(),
+        // theta.y());
+        *beta = theta;
+        beta += offset;
         i_src++;
         if (i_src == m_src_length) {
             // No need to continue now
-			return;
+            return;
         }
         z_src = m_src_plane_ptr[i_src].redshift();
     }
@@ -244,33 +246,46 @@ void Multiplane::traceTheta(float2 theta, float2 *beta,
             // Do source plane(s) that are in front of the current lens
             const float Ds = m_src_plane_ptr[i_src].ds();
             const float Dds = m_src_plane_ptr[i_src].dds();
-            const float2 s_theta =
-                m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
-			// printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-			// printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-			*beta = s_theta;
-			beta += offset;
+            const float2 s_theta = m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
+            // printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
+            // printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
+            *beta = s_theta;
+            beta += offset;
             i_src++;
             if (i_src == m_src_length) {
                 // No need to continue now
-				return;
+                return;
             }
             z_src = m_src_plane_ptr[i_src].redshift();
         }
-		auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-		theta = beta;
+        auto beta = m_plane_ptr[i].lens.getBetaf(theta);
+        theta = beta;
     }
-	
+
     // Handle remaining source planes with last lens
     while (i_src < m_src_length) {
         float Ds = m_src_plane_ptr[i_src].ds();
         float Dds = m_src_plane_ptr[i_src].dds();
         float2 s_theta =
             m_plane_ptr[m_plane_length - 1].lens.getBetaf(theta, Ds, Dds);
-		// printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-		// printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-		*beta = s_theta;
-		beta += offset;
+        // printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
+        // printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
+        *beta = s_theta;
+        beta += offset;
         i_src++;
     }
+}
+
+void Multiplane::traceMultiTheta(const Vector2D<float> *thetas,
+                                 Vector2D<float> *betas, const int length,
+                                 const int plane) {
+    float2 *loc_alphas, *loc_thetas;
+    size_t loc_size = plane * length * sizeof(float2);
+	gpuErrchk(&loc_alphas, loc_size);
+	gpuErrchk(&loc_thetas, loc_size);
+
+	
+
+	gpuErrchk(cudaFree(loc_alphas));
+	gpuErrchk(cudaFree(loc_thetas));
 }

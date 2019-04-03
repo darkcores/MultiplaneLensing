@@ -14,7 +14,7 @@ MultiPlaneContext::MultiPlaneContext(const double angularUnit,
     m_beta = nullptr;
     m_multiplane = nullptr;
 
-	// gpuErrchk(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+    // gpuErrchk(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
 }
 
 MultiPlaneContext::~MultiPlaneContext() {
@@ -93,55 +93,54 @@ int MultiPlaneContext::init(
 
 int MultiPlaneContext::setThetas(const std::vector<Vector2D<float>> &thetas) {
     try {
-        /*
-// Temp cpu arrays
-std::vector<float> theta_x, theta_y;
-// Allocations for cuda
-size_t arr_size = sizeof(float) * thetas.size();
-gpuErrchk(cudaMalloc(&m_theta_x, arr_size));
-gpuErrchk(cudaMalloc(&m_theta_y, arr_size));
-size_t beta_size = arr_size * m_multiplane->srcLength();
-gpuErrchk(cudaMalloc(&m_beta_x, beta_size));
-gpuErrchk(cudaMalloc(&m_beta_y, beta_size));
-
-m_theta_len = thetas.size();
-for (auto theta : thetas) {
-    theta *= m_angularUnit;
-    theta_x.push_back(theta.x());
-    theta_y.push_back(theta.y());
-}
-
-gpuErrchk(cudaMemcpy(m_theta_x, &theta_x[0], arr_size,
-                     cudaMemcpyHostToDevice));
-gpuErrchk(cudaMemcpy(m_theta_y, &theta_y[0], arr_size,
-                     cudaMemcpyHostToDevice));
-
-// Reserve space for betas
-for (auto &x : m_betas) {
-    x.reserve(thetas.size());
-}
-        */
         m_theta_len = thetas.size();
-		std::vector<float2> tmp;
-		tmp.reserve(m_theta_len);
-		for (auto &x : thetas) {
-			float2 f;
-			f.x = x.x() /* m_angularUnit*/;
-			f.y = x.y() /* m_angularUnit*/;
-			tmp.push_back(f);
-		}
+        std::vector<float2> tmp;
+        tmp.reserve(m_theta_len);
+        for (auto &x : thetas) {
+            float2 f;
+            f.x = x.x() /* m_angularUnit*/;
+            f.y = x.y() /* m_angularUnit*/;
+            tmp.push_back(f);
+        }
         size_t size = sizeof(Vector2D<float>) * thetas.size();
         gpuErrchk(cudaMalloc(&m_theta, size));
+        gpuErrchk(cudaMemcpy(m_theta, &tmp[0], size, cudaMemcpyHostToDevice));
         size_t beta_size = size * m_multiplane->srcLength();
         gpuErrchk(cudaMalloc(&m_beta, beta_size));
-        gpuErrchk(
-            cudaMemcpy(m_theta, &tmp[0], size, cudaMemcpyHostToDevice));
 
         // Reserve space for betas
         for (auto &x : m_betas) {
             x.reserve(thetas.size());
         }
 
+        return 0;
+    } catch (int e) {
+        return e;
+    }
+}
+
+int MultiPlaneContext::setThetas(
+    const std::vector<std::vector<Vector2D<float>>> &thetas) {
+    try {
+        m_theta_len = 0;
+
+        for (size_t i = 0; i < thetas.size(); i++) {
+            size_t s = thetas[i].size();
+            m_theta_len += s;
+            m_theta_count.push_back(m_theta_len);
+            m_betas[i].reserve(s);
+        }
+
+        gpuErrchk(cudaMalloc(&m_theta, sizeof(Vector2D<float>) * m_theta_len));
+        size_t offset = 0;
+        for (size_t i = 0; i < thetas.size(); i++) {
+            size_t size = sizeof(Vector2D<float>) * thetas[i].size();
+            gpuErrchk(cudaMemcpy(&m_theta[offset], &thetas[i][0], size,
+                                 cudaMemcpyHostToDevice));
+            offset = m_theta_count[i];
+        }
+        size_t beta_size = sizeof(Vector2D<float>) * m_theta_len;
+        gpuErrchk(cudaMalloc(&m_beta, beta_size));
         return 0;
     } catch (int e) {
         return e;
@@ -169,6 +168,17 @@ __global__ void _traceThetaKernel(const int n, const Multiplane mp,
     }
 }
 
+__global__ void _traceThetaKernelAlt(const int n, const Multiplane mp,
+                                     const float2 *__restrict__ points,
+                                     float2 *__restrict__ betas,
+                                     const int plane) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        // Vector2D<float> vec(xpoints[i], ypoints[i]);
+        mp.traceThetaAlt(points[i], &betas[i], plane);
+    }
+}
+
 int MultiPlaneContext::calculatePositions(
     const std::vector<std::vector<double>> &masses) {
     try {
@@ -184,8 +194,9 @@ int MultiPlaneContext::calculatePositions(
         gpuErrchk(cudaMalloc(&mass, lsize * sizeof(double)));
         for (size_t i = 0; i < size; i++) {
             size_t msize = masses[i].size();
-            gpuErrchk(cudaMemcpy(mass, &masses[i][0], sizeof(double) * msize,
-                                 cudaMemcpyHostToDevice));
+            gpuErrchk(cudaMemcpyAsync(mass, &masses[i][0],
+                                      sizeof(double) * msize,
+                                      cudaMemcpyHostToDevice));
 
             _updateMassesKernel<<<(size / 32) + 1, 32>>>(msize, i,
                                                          *m_multiplane, mass);
@@ -199,13 +210,63 @@ int MultiPlaneContext::calculatePositions(
         // Copy results back to host
         for (size_t i = 0; i < m_betas.size(); i++) {
             m_betas[i].resize(m_theta_len);
-            gpuErrchk(cudaMemcpy(&m_betas[i][0], &m_beta[i * m_theta_len],
-                                 sizeof(float2) * m_theta_len,
-                                 cudaMemcpyDeviceToHost));
-			for (auto &x : m_betas[i]) {
-				// x /= m_angularUnit;
-			}
+            gpuErrchk(cudaMemcpyAsync(&m_betas[i][0], &m_beta[i * m_theta_len],
+                                      sizeof(float2) * m_theta_len,
+                                      cudaMemcpyDeviceToHost));
         }
+
+        cudaDeviceSynchronize();
+
+        return 0;
+    } catch (int e) {
+        return e;
+    }
+}
+
+int MultiPlaneContext::calculatePositionsAlt(
+    const std::vector<std::vector<double>> &masses) {
+    try {
+        // Setup new masses
+        size_t size = masses.size();
+        double *mass;
+        size_t lsize = 0;
+        for (auto &m : masses) {
+            if (m.size() > lsize)
+                lsize = m.size();
+        }
+        // This array could be permanent if malloc / free is too long
+        gpuErrchk(cudaMalloc(&mass, lsize * sizeof(double)));
+        for (size_t i = 0; i < size; i++) {
+            size_t msize = masses[i].size();
+            gpuErrchk(cudaMemcpyAsync(mass, &masses[i][0],
+                                      sizeof(double) * msize,
+                                      cudaMemcpyHostToDevice));
+
+            _updateMassesKernel<<<(size / 32) + 1, 32>>>(msize, i,
+                                                         *m_multiplane, mass);
+        }
+        gpuErrchk(cudaFree(mass));
+
+        // Calculate new betas
+        size_t offset = 0;
+        for (size_t i = 0; i < m_betas.size(); i++) {
+            size_t tcount = m_theta_count[i] - offset;
+
+			// printf("Running kernel: %d, offset %d\n", i, offset);
+            // TODO: See if multistream would be useful
+            _traceThetaKernelAlt<<<(m_theta_len / 256) + 1, 256>>>(
+                tcount, *m_multiplane, (float2 *)&m_theta[offset],
+                (float2 *)&m_beta[offset], i);
+
+            // Copy results back to host
+            m_betas[i].resize(tcount);
+            gpuErrchk(cudaMemcpyAsync(&m_betas[i][0], &m_beta[offset],
+                                      sizeof(float2) * tcount,
+                                      cudaMemcpyDeviceToHost));
+            offset = m_theta_count[i];
+        }
+
+        cudaDeviceSynchronize();
 
         return 0;
     } catch (int e) {

@@ -32,6 +32,7 @@ class MultiPlaneContext {
     // float *m_theta_x, *m_theta_y;
 	Vector2D<float> *m_theta;
     size_t m_theta_len;
+	std::vector<size_t> m_theta_count;
     // Device betas, length is m_theta_len * number of source planes
     // float *m_beta_x, *m_beta_y;
 	Vector2D<float> *m_beta;
@@ -70,8 +71,17 @@ class MultiPlaneContext {
 	 * @param thetas List of thetas.
 	 */
     int setThetas(const std::vector<Vector2D<float>> &thetas);
+	
+	/**
+	 * Set thetas for calculations.
+	 *
+	 * @param thetas List of thetas per source plane.
+	 */
+    int setThetas(const std::vector<std::vector<Vector2D<float>>> &thetas);
 
     int calculatePositions(const std::vector<std::vector<double>> &masses);
+    
+	int calculatePositionsAlt(const std::vector<std::vector<double>> &masses);
 
     const std::vector<Vector2D<float>> &getSourcePositions(int idx) const;
 };

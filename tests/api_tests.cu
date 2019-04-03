@@ -3,6 +3,9 @@
 #include <multiplane_cu.h>
 #include <util/constants.h>
 
+#include <fstream>
+#include <iostream>
+
 TEST(APITests, SetupTest) {
     // Setup variables
     const double unit = ANGLE_ARCSEC;
@@ -89,12 +92,6 @@ TEST(APITests, CalcTest) {
     EXPECT_LT(fabs(beta0[9].x() - 8.314935), 1.5e-6);
     EXPECT_LT(fabs(beta0[9].y() - 8.314935), 1.5e-6);
 
-    /*
-for (auto &x : beta0) {
-    std::cout << "[ " << x.x() << " ; " << x.y() << " ]" << std::endl;
-}
-    */
-
     auto beta1 = ctx.getSourcePositions(1);
 
     EXPECT_LT(fabs(beta1[0].x() - 0.000000), 1.25e-6);
@@ -117,10 +114,106 @@ for (auto &x : beta0) {
     EXPECT_LT(fabs(beta1[8].y() - 6.836822), 1.25e-6);
     EXPECT_LT(fabs(beta1[9].x() - 7.730499), 1.25e-6);
     EXPECT_LT(fabs(beta1[9].y() - 7.730499), 1.25e-6);
-
-    /*
-for (auto &x : beta1) {
-    std::cout << "[ " << x.x() << " ; " << x.y() << " ]" << std::endl;
 }
-    */
+
+TEST(APITests, TestGrale1) {
+    const double unit = ANGLE_ARCSEC;
+    const Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    std::vector<float> l_z = {0.4, 1.0};
+    std::vector<float> s_z = {0.8, 1.5, 2.5};
+    std::vector<std::vector<PlummerParams>> params;
+
+    std::ifstream lensdata(
+        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/testdata.txt");
+
+    if (!lensdata.is_open())
+        throw(1);
+
+    std::vector<PlummerParams> p;
+    for (int i = 0; i < 9; i++) {
+        float x, y;
+        lensdata >> x >> y;
+        x /= unit;
+        y /= unit;
+        PlummerParams pp = {Vector2D<float>(x, y), 5.0, 10e13 * MASS_SOLAR};
+        p.push_back(pp);
+    }
+    params.push_back(p);
+    std::vector<PlummerParams> p2;
+    for (int i = 0; i < 9; i++) {
+        float x, y;
+        lensdata >> x >> y;
+        x /= unit;
+        y /= unit;
+        PlummerParams pp = {Vector2D<float>(x, y), 6.0, 10e13 * MASS_SOLAR};
+        p2.push_back(pp);
+    }
+    params.push_back(p2);
+
+    lensdata.close();
+
+    std::ifstream thetadata(
+        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/test_thetas.txt");
+
+    std::vector<std::vector<Vector2D<float>>> thetas;
+    int numthetas = 0;
+    int t = 0;
+    do {
+        thetadata >> numthetas;
+        // std::cout << "Next " << numthetas << " thetas" << std::endl;
+        thetas.push_back(std::vector<Vector2D<float>>(numthetas));
+        for (int i = 0; i < numthetas; i++) {
+            float x, y;
+            thetadata >> x >> y;
+            x /= unit;
+            y /= unit;
+            thetas[t][i] = Vector2D<float>(x, y);
+        }
+        t++;
+    } while (numthetas != 0);
+
+    thetadata.close();
+
+    // Setup context
+    MultiPlaneContext ctx(unit, cosm);
+    ctx.init(l_z, params, s_z);
+    ctx.setThetas(thetas);
+
+    std::vector<std::vector<double>> masses{{0, 1, 0, 1, 0, 2, 0, 0.5, 0},
+                                            {1, 1, 0, 0.5, 1.5, 1, 0, 0, 0.5}};
+    for (int i = 0; i < 9; i++) {
+        masses[0][i] *= 1e13 * MASS_SOLAR;
+    }
+    for (int i = 0; i < 9; i++) {
+        masses[1][i] *= 1e13 * MASS_SOLAR;
+    }
+    ctx.calculatePositionsAlt(masses);
+
+    std::ifstream betadata(
+        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/test_betas.txt");
+
+    int numbetas = 0;
+	betadata >> numbetas;
+    t = 0;
+    while (numbetas != 0) {
+        const auto betavecs = ctx.getSourcePositions(t);
+        // std::cout << "Next " << numbetas << " betas" << std::endl;
+        ASSERT_EQ(numbetas, betavecs.size());
+        for (int i = 0; i < numbetas; i++) {
+            float x, y;
+            betadata >> x >> y;
+            // std::cout << "Also: " << thetas[i][0].x() << std::endl;
+            // std::cout << "Also: " << x << std::endl;
+            x /= unit;
+            y /= unit;
+
+			printf("\rt: %d i: %d, x: %f - %f", t, i, betavecs[i].x(), x);
+			ASSERT_LT(fabs(betavecs[i].x() - x), 1e-5);
+			ASSERT_LT(fabs(betavecs[i].y() - y), 1e-5);
+        }
+		betadata >> numbetas;
+        t++;
+    }
+
+    betadata.close();
 }
