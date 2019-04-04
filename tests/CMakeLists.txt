@@ -4,7 +4,7 @@ add_executable(unit_tests
   util_tests.cpp
   plummer_tests.cpp
   composite_tests.cpp
-  #sources_tests.cpp
+  multiplane_tests.cpp
 )
 
 add_executable(cu_unit_tests

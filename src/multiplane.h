@@ -1,62 +1,36 @@
 #pragma once
 
 #include "composite.h"
-#include "sources.h"
 #include "util/cosmology.h"
-#include <vector>
-
-/**
- * Data for a lens plane.
- */
-class PlaneData {
-  public:
-    CompositeLens lens;
-    float redshift;
-
-    /**
-     * Construct PlaneData.
-     *
-     * @param l CompositeLens.
-     * @param z Redshift.
-     */
-    PlaneData(CompositeLens &l, float z) : lens(l) { redshift = z; }
-
-    //  __device__ PlaneData() {}
-
-    bool operator<(const PlaneData &cmp) const {
-        return redshift < cmp.redshift;
-    }
-};
 
 /**
  * Multiplane lenses and source planes.
  */
 class Multiplane {
   private:
-    const PlaneData *__restrict__ m_plane_ptr;
-    const SourcePlane *__restrict__ m_src_plane_ptr;
-    PlaneData *m_plane_data;
-    SourcePlane *m_src_data;
-    const int m_plane_length;
-    const int m_src_length;
-    bool m_cuda;
+    CompositeLens *__restrict__ m_lenses;
+    float *__restrict__ m_sources;
+    float *__restrict__ m_dist_lenses;
+    float *__restrict__ m_dist_sources;
+    std::vector<int> m_dist_offsets;
+    const int m_lenses_size, m_sources_size;
+    const bool m_cuda;
 
   public:
     /**
      * Create new Multiplane object.
      *
-     * @param plane_length Number of lens planes.
-     * @param src_length Number of source planes.
-     * @param plane_ptr Pointer to lens plane memory.
-     * @param src_plane_ptr Pointer to source plane memory.
      */
-    Multiplane(int plane_length, int src_length, PlaneData *plane_ptr,
-               SourcePlane *src_plane_ptr, bool cuda = false)
-        : m_plane_ptr(plane_ptr), m_src_plane_ptr(src_plane_ptr),
-          m_plane_length(plane_length), m_src_length(src_length) {
-        m_plane_data = plane_ptr;
-        m_src_data = src_plane_ptr;
-        m_cuda = cuda;
+    Multiplane(CompositeLens *lenses, int lenses_size, float *sources,
+               int sources_size, float *dist_lenses, float *dist_sources,
+               std::vector<int> dist_offsets, bool cuda = false)
+        : m_lenses_size(lenses_size), m_sources_size(sources_size),
+          m_cuda(cuda) {
+        m_lenses = lenses;
+        m_sources = sources;
+        m_dist_lenses = dist_lenses;
+        m_dist_sources = dist_sources;
+        m_dist_offsets = dist_offsets;
     }
 
     /**
@@ -64,40 +38,16 @@ class Multiplane {
      */
     int destroy();
 
-    /**
-     * Trace theta to source plane
-     */
-    __host__ __device__ uint8_t traceTheta(Vector2D<float> theta) const;
-    /**
-     * Trace thetas and save positions to multiple source planes
-     */
-    __host__ __device__ void traceTheta(Vector2D<float> theta, float *beta_x,
-                                        float *beta_y,
-                                        const size_t offset) const;
+/**
+ * Trace theta vectors
+ */
 #ifdef __CUDACC__
-    /**
-     * Trace thetas and save positions to multiple source planes
-     */
-    __host__ __device__ void traceTheta(float2 theta, float2 *beta,
-                                        const size_t offset) const;
-
+    int traceThetas(const float2 *thetas, float2 *betas, const int n,
+                    const int plane);
+#else
+    int traceThetas(const Vector2D<float> *thetas, Vector2D<float> *betas,
+                    const int n, const int plane);
 #endif
-    void traceMultiTheta(const Vector2D<float> *thetas, Vector2D<float> *betas,
-                         const int length, const int plane);
-
-    /**
-     * Update lens masses (GPU only)
-     *
-     * @param dim LensPlane index.
-     * @param i Sublens index.
-     * @param masses Masses for LensPlane.
-     */
-    __device__ void updateLensMasses(const int dim, const int i,
-                                     const double *masses) {
-        m_plane_data[dim].lens.setMass(i, masses[i]);
-    }
-
-    int srcLength() const { return m_src_length; }
 };
 
 /**
@@ -106,8 +56,10 @@ class Multiplane {
 class MultiplaneBuilder {
   private:
     std::vector<CompositeLensBuilder> m_builders;
-	std::vector<float> m_source_z;
-	std::vector<std::vector<float>> m_distances;
+    std::vector<float> m_source_z;
+    std::vector<float> m_dists_lenses;
+    std::vector<float> m_dists_sources;
+    std::vector<int> m_dist_offsets;
 
     const Cosmology m_cosm;
 
@@ -127,18 +79,12 @@ class MultiplaneBuilder {
      * @param lensbuilder Builder for CompositeLens.
      */
     void addPlane(CompositeLensBuilder &lensbuilder);
-    /**
-     * Add a source plane.
-     *
-     * @param plane SourcePlane.
-     */
-    void addSourcePlane(SourcePlane &plane);
 
     /**
      * If we aren't using source planes with points we only need the
      * redshifts for beta vectors
      */
-    void setRedshifts(std::vector<float> &redshifts);
+    void setRedshifts(std::vector<float> &redshifts) { m_source_z = redshifts; }
 
     /**
      * Get Multiplane (CPU).

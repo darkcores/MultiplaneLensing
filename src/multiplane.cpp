@@ -1,86 +1,135 @@
 #include "multiplane.h"
 
-#include <algorithm>
-#include <iostream>
 #include "util/error.h"
+#include <algorithm>
+#include <cstring>
+#include <iostream>
 
 void MultiplaneBuilder::addPlane(CompositeLensBuilder &lensbuilder) {
     m_builders.push_back(lensbuilder);
 }
 
-void MultiplaneBuilder::addSourcePlane(SourcePlane &plane) {
-    m_src_data.push_back(plane);
-}
-
 void MultiplaneBuilder::prepare() {
-    std::sort(m_data.begin(), m_data.end());
-    std::sort(m_src_data.begin(), m_src_data.end());
+    std::sort(m_builders.begin(), m_builders.end());
+    std::sort(m_source_z.begin(), m_source_z.end());
 
-    // Set lens distances and stuff
-    size_t s = 0; // source plane index
-    float z_src = m_src_data[s].redshift();
-    // std::cout << "Lenses in builder " << m_builders.size() << std::endl;
-    for (size_t i = 0; i < m_builders.size() - 1; i++) {
-        float zd = m_builders[i].redshift();
-        float zs = m_builders[i + 1].redshift();
-        float Ds = m_cosm.angularDiameterDistance(zs);
-        float Dds = m_cosm.angularDiameterDistance(zs, zd);
-        m_builders[i].setSource(Ds, Dds);
-        // For each src plane before the next lens
-        while (z_src < zs) {
-            // Ds and Dds for this lens for the following sourceplane
-            // std::cout << "Settings redshift source plane" << std::endl;
-            if (z_src > zd) {
-                Ds = m_cosm.angularDiameterDistance(z_src);
-                Dds = m_cosm.angularDiameterDistance(z_src, zd);
-                m_src_data[s].setSource(Ds, Dds);
-            }
-            if (s < (m_src_data.size() - 1)) {
-                s++;
-                z_src = m_src_data[s].redshift();
-            } else {
-                // z_src = std::numeric_limits<float>::infinity();
-                // Later lenses aren't useful anyways
-                return;
-            }
+    // Calculate distances for all the lenses
+    double sz, lz, Di, Dji, Dd;
+    for (size_t i = 0; i < m_builders.size(); i++) {
+        lz = m_builders[i].redshift();
+        Di = m_cosm.angularDiameterDistance(lz);
+        for (size_t j = 0; j < i; j++) {
+            Dji = m_cosm.angularDiameterDistance(m_builders[j].redshift(), lz);
+            Dd = Dji / Di;
+            m_dists_lenses.push_back(Dd);
         }
     }
-    // Handle leftover source plane for last lens
-    while (s < m_src_data.size()) {
-        // std::cout << "Settings redshift source plane" << std::endl;
-        float zs = m_builders[m_builders.size() - 1].redshift();
-        z_src = m_src_data[s].redshift();
-        float Ds = m_cosm.angularDiameterDistance(z_src);
-        float Dds = m_cosm.angularDiameterDistance(z_src, zs);
-        m_src_data[s].setSource(Ds, Dds);
-        s++;
+
+    // And finally for the source planes
+    for (size_t i = 0; i < m_source_z.size(); i++) {
+        sz = m_source_z[i];
+        Di = m_cosm.angularDiameterDistance(sz);
+        size_t li = 0;
+        while (li < m_builders.size() && m_builders[li].redshift() < sz) {
+            Dji = m_cosm.angularDiameterDistance(m_builders[li].redshift(), sz);
+            Dd = Dji / Di;
+            m_dists_sources.push_back(Dd);
+            li++;
+        }
+        m_dist_offsets.push_back(li);
+		// printf("Li val %lu, %lu\n", i, li);
     }
 }
 
 Multiplane MultiplaneBuilder::getMultiPlane() {
-    prepare();
+    std::vector<CompositeLens> data;
 
     // Get final lenses from builders
-    m_data.clear();
     for (size_t i = 0; i < m_builders.size(); i++) {
         auto lens = m_builders[i].getLens();
-        PlaneData plane(lens, m_builders[i].redshift());
-        m_data.push_back(plane);
+        data.push_back(lens);
     }
 
-    if (m_data.size() == 0 || m_src_data.size() == 0) {
-        std::cerr << "No lens and/or source planes given " << m_data.size()
-                  << "-" << m_src_data.size() << std::endl;
-        std::terminate();
+    if (data.size() == 0 || m_source_z.size() == 0) {
+        std::cerr << "No lens and/or source planes given " << data.size() << "-"
+                  << m_source_z.size() << std::endl;
+        throw(-1);
     }
 
-    plane_ptr = (PlaneData *)malloc(sizeof(PlaneData) * m_data.size());
-	cpuErrchk(plane_ptr);
-    std::memcpy(plane_ptr, &m_data[0], sizeof(PlaneData) * m_data.size());
-    src_ptr = (SourcePlane *)malloc(sizeof(SourcePlane) * m_src_data.size());
-	cpuErrchk(src_ptr);
-    std::memcpy(src_ptr, &m_src_data[0],
-                sizeof(SourcePlane) * m_src_data.size());
+    prepare();
 
-    return Multiplane(m_data.size(), m_src_data.size(), plane_ptr, src_ptr);
+    CompositeLens *lens_ptr;
+    float *src_ptr, *dist_lens_ptr, *dist_src_ptr;
+
+    size_t lens_size = sizeof(CompositeLens) * data.size();
+    lens_ptr = (CompositeLens *)malloc(lens_size);
+    cpuErrchk(lens_ptr);
+    std::memcpy((void *)lens_ptr, &data[0], lens_size);
+
+    size_t src_size = sizeof(float) * m_source_z.size();
+    src_ptr = (float *)malloc(src_size);
+    cpuErrchk(src_ptr);
+    std::memcpy((void *)src_ptr, &m_source_z[0], src_size);
+
+    size_t dist_lens_size = sizeof(float) * m_dists_lenses.size();
+    dist_lens_ptr = (float *)malloc(dist_lens_size);
+    cpuErrchk(dist_lens_ptr);
+    std::memcpy((void *)dist_lens_ptr, &m_dists_lenses[0], dist_lens_size);
+
+    size_t dist_src_size = sizeof(float) * m_dists_sources.size();
+    dist_src_ptr = (float *)malloc(dist_src_size);
+    cpuErrchk(dist_src_ptr);
+    std::memcpy((void *)dist_src_ptr, &m_dists_sources[0], dist_src_size);
+
+    return Multiplane(lens_ptr, data.size(), src_ptr, m_source_z.size(),
+                      dist_lens_ptr, dist_src_ptr, m_dist_offsets);
+}
+
+int Multiplane::traceThetas(const Vector2D<float> *thetas,
+                            Vector2D<float> *betas, const int n,
+                            const int plane) {
+    int offset = 0;
+    for (int i = 0; i < plane; i++) {
+        int s = m_dist_offsets[i];
+		offset += s;
+        //offset += (s * (s + 1) / 2);
+    }
+
+    int numlenses = m_dist_offsets[plane];
+    std::vector<Vector2D<float>> alphas;
+    alphas.resize(numlenses);
+    // tmp_thetas.resize(numlenses);
+	Vector2D<float> last_theta;
+
+    // For each theta
+    for (int z = 0; z < n; z++) {
+        int l = 0;
+
+        // printf("Lenses: %d\n", numlenses);
+
+        // lenses
+        for (int i = 0; i <= numlenses; i++) {
+            auto t = thetas[z];
+            for (int j = 0; j < i; j++) {
+                if (j == (i - 1)) {
+                    // Alpha not yet calculated
+                    alphas[j] = m_lenses[j].getAlpha(last_theta);
+					// printf("Alpha %d\n", j);
+                }
+                t -= alphas[j] * m_dist_lenses[l];
+                l++;
+            }
+            last_theta = t;
+        }
+
+        // Source plane
+        l = offset;
+        auto t = thetas[z];
+        for (int i = 0; i < numlenses; i++) {
+            t -= alphas[i] * m_dist_sources[l];
+            l++;
+        }
+        betas[z] = t;
+    }
+    return 0;
 }

@@ -4,8 +4,8 @@ SET(COMMON_SRC
   composite.cpp
   # sources.cu
   # sources.cpp
-  # multiplane.cu
-  # multiplane.cpp
+  multiplane.cu
+  multiplane.cpp
   # multiplane_cu.cu
   util/cosmology.cu
 )

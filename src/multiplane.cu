@@ -1,291 +1,102 @@
 #include "multiplane.h"
 
 #include "util/error.h"
+#include <thrust/device_vector.h>
 #include <algorithm>
 #include <iostream>
 
 Multiplane MultiplaneBuilder::getCuMultiPlane() {
-    prepare();
+    std::vector<CompositeLens> data;
 
-    // Get final lenses from builders
-    m_data.clear();
     for (size_t i = 0; i < m_builders.size(); i++) {
         auto lens = m_builders[i].getCuLens();
-        PlaneData plane(lens, m_builders[i].redshift());
-        m_data.push_back(plane);
+        data.push_back(lens);
     }
 
-    if (m_data.size() == 0 || m_src_data.size() == 0) {
-        std::cerr << "No lens and/or source planes given" << std::endl;
-        std::terminate();
+    if (data.size() == 0 || m_source_z.size() == 0) {
+        std::cerr << "No lens and/or source planes given " << data.size() << "-"
+                  << m_source_z.size() << std::endl;
+        throw(-1);
     }
-    cuda = true;
-#ifdef __CUDACC__
-    // dev_m_data = m_data;
-    // dev_m_src_data = m_src_data;
-    // plane_ptr = thrust::raw_pointer_cast(&dev_m_data[0]);
-    // src_ptr = thrust::raw_pointer_cast(&dev_m_src_data[0]);
-    gpuErrchk(cudaMalloc(&plane_ptr, sizeof(PlaneData) * m_data.size()));
-    gpuErrchk(cudaMemcpy(plane_ptr, &m_data[0],
-                         sizeof(PlaneData) * m_data.size(),
+
+    prepare();
+
+    CompositeLens *lens_ptr;
+    float *src_ptr, *dist_lens_ptr, *dist_src_ptr;
+
+    size_t lens_size = sizeof(CompositeLens) * data.size();
+    gpuErrchk(cudaMalloc(&lens_ptr, lens_size));
+    gpuErrchk(
+        cudaMemcpy(lens_ptr, &data[0], lens_size, cudaMemcpyHostToDevice));
+
+    size_t src_size = sizeof(float) * m_source_z.size();
+    gpuErrchk(cudaMalloc(&src_ptr, src_size));
+    gpuErrchk(
+        cudaMemcpy(src_ptr, &m_source_z[0], src_size, cudaMemcpyHostToDevice));
+
+    size_t dist_lens_size = sizeof(float) * m_dists_lenses.size();
+    gpuErrchk(cudaMalloc(&dist_lens_ptr, dist_lens_size));
+    gpuErrchk(cudaMemcpy(dist_lens_ptr, &m_dists_lenses[0], dist_lens_size,
                          cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMalloc(&src_ptr, sizeof(SourcePlane) * m_src_data.size()));
-    gpuErrchk(cudaMemcpy(src_ptr, &m_src_data[0],
-                         sizeof(SourcePlane) * m_src_data.size(),
+
+    size_t dist_src_size = sizeof(float) * m_dists_sources.size();
+    gpuErrchk(cudaMalloc(&dist_src_ptr, dist_src_size));
+    gpuErrchk(cudaMemcpy(dist_src_ptr, &m_dists_sources[0], dist_src_size,
                          cudaMemcpyHostToDevice));
-#else
-    plane_ptr = nullptr;
-    src_ptr = nullptr;
-#endif
-    return Multiplane(m_data.size(), m_src_data.size(), plane_ptr, src_ptr,
-                      true);
+
+    return Multiplane(lens_ptr, data.size(), src_ptr, m_source_z.size(),
+                      dist_lens_ptr, dist_src_ptr, m_dist_offsets, true);
 }
 
 int Multiplane::destroy() {
+    // Destroy children
     if (m_cuda) {
         // So we copy them back to cpu first and then destroy TODO:
         // consider just keeping a vector of them in memory for
         // cleanliness
-        size_t psize = m_plane_length * sizeof(PlaneData);
-        PlaneData *pptr = (PlaneData *)malloc(psize);
+        size_t psize = m_lenses_size * sizeof(CompositeLens);
+        CompositeLens *pptr = (CompositeLens *)malloc(psize);
         cpuErrchk(pptr);
-        gpuErrchk(cudaMemcpy(pptr, m_plane_ptr, psize, cudaMemcpyDeviceToHost));
-        for (int i = 0; i < m_plane_length; i++) {
-            pptr[i].lens.destroy();
+        gpuErrchk(cudaMemcpy(pptr, m_lenses, psize, cudaMemcpyDeviceToHost));
+        for (int i = 0; i < m_lenses_size; i++) {
+            pptr[i].destroy();
         }
         free(pptr);
-        size_t ssize = m_src_length * sizeof(SourcePlane);
-        SourcePlane *sptr = (SourcePlane *)malloc(ssize);
-        cpuErrchk(sptr);
-        gpuErrchk(
-            cudaMemcpy(sptr, m_src_plane_ptr, ssize, cudaMemcpyDeviceToHost));
-        for (int i = 0; i < m_src_length; i++) {
-            sptr[i].destroy();
-        }
-        free(sptr);
     } else {
-        for (int i = 0; i < m_plane_length; i++) {
-            m_plane_data[i].lens.destroy();
-        }
-        for (int i = 0; i < m_src_length; i++) {
-            m_src_data[i].destroy();
+        for (int i = 0; i < m_lenses_size; i++) {
+            m_lenses[i].destroy();
         }
     }
+
+    // Free memory
     if (m_cuda) {
-        gpuErrchk(cudaFree(m_plane_data));
-        gpuErrchk(cudaFree(m_src_data));
+        gpuErrchk(cudaFree(m_lenses));
+        gpuErrchk(cudaFree(m_sources));
+        gpuErrchk(cudaFree(m_dist_lenses));
+        gpuErrchk(cudaFree(m_dist_sources));
     } else {
-        free(m_plane_data);
-        free(m_src_data);
+        free(m_lenses);
+        free(m_sources);
+        free(m_dist_lenses);
+        free(m_dist_sources);
     }
-    m_plane_data = NULL;
-    m_src_data = NULL;
+    m_lenses = nullptr;
+    m_sources = nullptr;
+    m_dist_lenses = nullptr;
+    m_dist_sources = nullptr;
     return 0;
 }
 
-uint8_t Multiplane::traceTheta(Vector2D<float> theta) const {
-    // printf("Theta: (%f, %f)\n", theta.x(), theta.y());
-    int i_src = 0;
-    const uint8_t pixel = 0;
-    float z_src = m_src_plane_ptr[i_src].redshift();
-    // Draw before any lenses first (TODO)
-    float zs = z_src + 1;
-    if (m_plane_length > 0)
-        zs = m_plane_ptr[0].redshift;
-    while (z_src < zs) {
-        // Do source plane(s)
-        uint8_t p = m_src_plane_ptr[i_src].check_hit(theta);
-        if (p != 0) {
-            // TODO return here or add sources?
-            return p;
-        }
-        i_src++;
-        if (i_src == m_src_length) {
-            // No need to continue now
-            return pixel;
-        }
-        z_src = m_src_plane_ptr[i_src].redshift();
+int Multiplane::traceThetas(const float2 *thetas, float2 *betas,
+                            const int n, const int plane) {
+    int offset = 0;
+    for (int i = 0; i < plane; i++) {
+        int s = m_dist_offsets[i];
+		offset += s;
     }
 
-    // Go over each lensplane, and, if we encounter it, source plane.
-    for (int i = 0; i < (m_plane_length - 1); i++) {
-        zs = m_plane_ptr[i + 1].redshift;
-        // TODO what if sourceplane is before lens
-        while (z_src <= zs) {
-            // Do source plane(s)
-            // TODO check theta with sourceplane
-            float Ds = m_src_plane_ptr[i_src].ds();
-            float Dds = m_src_plane_ptr[i_src].dds();
-            Vector2D<float> s_theta =
-                m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
-            uint8_t p = m_src_plane_ptr[i_src].check_hit(s_theta);
-            if (p != 0) {
-                // TODO return here or add sources?
-                return p;
-            }
-            i_src++;
-            if (i_src == m_src_length) {
-                // No need to continue now
-                return pixel;
-            }
-            z_src = m_src_plane_ptr[i_src].redshift();
-        }
-        auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-        theta = beta;
-    }
-    // Handle remaining source planes
-    while (i_src < m_src_length) {
-        float Ds = m_src_plane_ptr[i_src].ds();
-        float Dds = m_src_plane_ptr[i_src].dds();
-        Vector2D<float> s_theta =
-            m_plane_ptr[m_plane_length - 1].lens.getBetaf(theta, Ds, Dds);
-        uint8_t p = m_src_plane_ptr[i_src].check_hit(s_theta);
-        if (p != 0) {
-            // TODO return here or add sources?
-            return p;
-        }
-        i_src++;
-    }
-    return pixel;
-}
+    int numlenses = m_dist_offsets[plane];
+	thrust::device_vector<float2> alphas(numlenses * n);
 
-void Multiplane::traceTheta(Vector2D<float> theta, float *beta_x, float *beta_y,
-                            const size_t offset) const {
-    int i_src = 0;
-    float z_src = m_src_plane_ptr[i_src].redshift();
-    // Draw before any lenses first (TODO)
-    float zs = z_src + 10000000;
-    if (m_plane_length > 0)
-        zs = m_plane_ptr[0].redshift;
-    // printf("Z init vals: %f and %f\n", z_src, zs);
-    while (z_src < zs) {
-        // Do source plane(s)
-        // printf("Using theta without lens: [ %f ; %f ]\n", theta.x(),
-        // theta.y());
-        *beta_x = theta.x();
-        *beta_y = theta.y();
-        beta_x += offset;
-        beta_y += offset;
-        i_src++;
-        if (i_src == m_src_length) {
-            // No need to continue now
-            return;
-        }
-        z_src = m_src_plane_ptr[i_src].redshift();
-    }
-
-    // Go over each lensplane, and, if we encounter it, source plane.
-    for (int i = 0; i < (m_plane_length - 1); i++) {
-        zs = m_plane_ptr[i + 1].redshift;
-        while (z_src <= zs) {
-            // Do source plane(s) that are in front of the current lens
-            const float Ds = m_src_plane_ptr[i_src].ds();
-            const float Dds = m_src_plane_ptr[i_src].dds();
-            const Vector2D<float> s_theta =
-                m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
-            // printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-            // printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-            *beta_x = s_theta.x();
-            *beta_y = s_theta.y();
-            beta_x += offset;
-            beta_y += offset;
-            i_src++;
-            if (i_src == m_src_length) {
-                // No need to continue now
-                return;
-            }
-            z_src = m_src_plane_ptr[i_src].redshift();
-        }
-        auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-        theta = beta;
-    }
-
-    // Handle remaining source planes with last lens
-    while (i_src < m_src_length) {
-        float Ds = m_src_plane_ptr[i_src].ds();
-        float Dds = m_src_plane_ptr[i_src].dds();
-        Vector2D<float> s_theta =
-            m_plane_ptr[m_plane_length - 1].lens.getBetaf(theta, Ds, Dds);
-        // printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-        // printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-        *beta_x = s_theta.x();
-        *beta_y = s_theta.y();
-        beta_x += offset;
-        beta_y += offset;
-        i_src++;
-    }
-}
-
-void Multiplane::traceTheta(float2 theta, float2 *beta,
-                            const size_t offset) const {
-    int i_src = 0;
-    float z_src = m_src_plane_ptr[i_src].redshift();
-    // Draw before any lenses first (TODO)
-    float zs = z_src + 10000000;
-    if (m_plane_length > 0)
-        zs = m_plane_ptr[0].redshift;
-    // printf("Z init vals: %f and %f\n", z_src, zs);
-    while (z_src < zs) {
-        // Do source plane(s)
-        // printf("Using theta without lens: [ %f ; %f ]\n", theta.x(),
-        // theta.y());
-        *beta = theta;
-        beta += offset;
-        i_src++;
-        if (i_src == m_src_length) {
-            // No need to continue now
-            return;
-        }
-        z_src = m_src_plane_ptr[i_src].redshift();
-    }
-
-    // Go over each lensplane, and, if we encounter it, source plane.
-    for (int i = 0; i < (m_plane_length - 1); i++) {
-        zs = m_plane_ptr[i + 1].redshift;
-        while (z_src <= zs) {
-            // Do source plane(s) that are in front of the current lens
-            const float Ds = m_src_plane_ptr[i_src].ds();
-            const float Dds = m_src_plane_ptr[i_src].dds();
-            const float2 s_theta = m_plane_ptr[i].lens.getBetaf(theta, Ds, Dds);
-            // printf("theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-            // printf("s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-            *beta = s_theta;
-            beta += offset;
-            i_src++;
-            if (i_src == m_src_length) {
-                // No need to continue now
-                return;
-            }
-            z_src = m_src_plane_ptr[i_src].redshift();
-        }
-        auto beta = m_plane_ptr[i].lens.getBetaf(theta);
-        theta = beta;
-    }
-
-    // Handle remaining source planes with last lens
-    while (i_src < m_src_length) {
-        float Ds = m_src_plane_ptr[i_src].ds();
-        float Dds = m_src_plane_ptr[i_src].dds();
-        float2 s_theta =
-            m_plane_ptr[m_plane_length - 1].lens.getBetaf(theta, Ds, Dds);
-        // printf("final theta: [ %.8f ; %.8f ]\n", theta.x(), theta.y());
-        // printf("final s_theta: [ %.8f ; %.8f ]\n", s_theta.x(), s_theta.y());
-        *beta = s_theta;
-        beta += offset;
-        i_src++;
-    }
-}
-
-void Multiplane::traceMultiTheta(const Vector2D<float> *thetas,
-                                 Vector2D<float> *betas, const int length,
-                                 const int plane) {
-    float2 *loc_alphas, *loc_thetas;
-    size_t loc_size = plane * length * sizeof(float2);
-	gpuErrchk(&loc_alphas, loc_size);
-	gpuErrchk(&loc_thetas, loc_size);
-
-	
-
-	gpuErrchk(cudaFree(loc_alphas));
-	gpuErrchk(cudaFree(loc_thetas));
+    return 0;
 }

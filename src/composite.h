@@ -96,4 +96,8 @@ class CompositeLensBuilder {
      * Get lens. Has internal pointer to host memory.
      */
     CompositeLens getLens();
+
+    bool operator<(const CompositeLensBuilder &cmp) const {
+        return m_redshift < cmp.m_redshift;
+    }
 };
