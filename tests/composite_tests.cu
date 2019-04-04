@@ -6,9 +6,8 @@
 #include <util/cosmology.h>
 
 CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
-                                double angularwidth, double mass, double Ds = 0,
-                                double Dds = 0) {
-    CompositeLensBuilder lensbuilder;
+                                double angularwidth, double mass) {
+    CompositeLensBuilder lensbuilder(Dd); // Redshift not used in these tests.
     double xstart = -width / 2;
     double xend = width / 2;
     double xstep = width / (N - 1);
@@ -18,74 +17,43 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
     // This works for this test, but might not always work TODO
     for (double x = xstart; x <= xend; x += xstep) {
         for (double y = ystart; y <= yend; y += ystep) {
-            Plummer plum(Dd, mass, angularwidth);
-            lensbuilder.addLens(plum, Vector2D<float>(x, y));
+            Plummer plum(Dd, mass, angularwidth, 1 / ANGLE_ARCSEC,
+                         float2{.x = (float)x, .y = (float)y});
+            lensbuilder.addLens(plum);
         }
     }
-    lensbuilder.setSource(Ds, Dds);
     return lensbuilder;
 }
 
-/*
-__global__ void alphatest(int n, CompositeLens *lens,
-                          Vector2D<double> *alphas) {
+__global__ void alphaCompCalc(int n, float2 *thetas, float2 *alphas,
+                              CompositeLens lens) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    Vector2D<double> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
-    alphas[i] = lens->getAlpha(vec);
+
+    if (i < n) {
+        alphas[i] = lens.getAlpha(thetas[i]);
+    }
 }
 
-__global__ void betatest(int n, CompositeLens *lens, Vector2D<double> *betas) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    Vector2D<double> vec((i % 7) * ANGLE_ARCSEC, (i % 5) * ANGLE_ARCSEC);
-    betas[i] = lens->getBeta(vec);
-}
-*/
-
-__global__ void betaftest(int n, const CompositeLens *const __restrict__ lens,
-                          const float *__restrict__ thetax,
-                          const float *__restrict__ thetay,
-                          float *__restrict__ betax,
-                          float *__restrict__ betay, const float Ds, const float Dds) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    Vector2D<float> vec(thetax[i], thetay[i]);
-    auto betas = lens->getBetaf(vec, Ds, Dds);
-    betax[i] = betas.x();
-    betay[i] = betas.y();
-}
-
-TEST(CompositeCuTests, TestBetaF) {
+TEST(CompositeTests, TestAlpha) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d = 0.4;
-    double z_s = 1.0;
     auto Dd = cosm.angularDiameterDistance(z_d);
-    auto Ds = cosm.angularDiameterDistance(z_s);
-    auto Dds = cosm.angularDiameterDistance(z_d, z_s);
-    auto lensbuilder = createGrid(Dd, 10, 15 * ANGLE_ARCSEC, 15 * ANGLE_ARCSEC,
-                                  5 * ANGLE_ARCSEC, 1e13 * MASS_SOLAR, Ds, Dds);
+    auto lensbuilder = createGrid(Dd, 3, 15, 15, 5, 1e13 * MASS_SOLAR);
     auto lens = lensbuilder.getCuLens();
+    float2 point{.x = 1.0, .y = 2.0};
+    thrust::device_vector<float2> d_thetas(1), d_alphas(1);
+    d_thetas[0] = point;
+    float2 *thetaptr = thrust::raw_pointer_cast(&d_thetas[0]);
+    float2 *alphaptr = thrust::raw_pointer_cast(&d_alphas[0]);
 
-    thrust::device_vector<CompositeLens> dv;
-    dv.push_back(lensbuilder.getCuLens());
-    auto l_ptr = thrust::raw_pointer_cast(&dv[0]);
+    alphaCompCalc<<<1, 32>>>(1, thetaptr, alphaptr, lens);
 
-    thrust::host_vector<float> thetax;
-    thrust::host_vector<float> thetay;
-    for (size_t i = 0; i < 1048576; i++) {
-        thetax.push_back((i % 17) * ANGLE_ARCSEC);
-        thetay.push_back((i % 13) * ANGLE_ARCSEC);
-    }
-    thrust::device_vector<float> dev_thetax(thetax);
-    thrust::device_vector<float> dev_thetay(thetay);
-    thrust::device_vector<float> betax(1048576);
-    thrust::device_vector<float> betay(1048576);
-    auto bx_ptr = thrust::raw_pointer_cast(&betax[0]);
-    auto by_ptr = thrust::raw_pointer_cast(&betay[0]);
-    auto tx_ptr = thrust::raw_pointer_cast(&dev_thetax[0]);
-    auto ty_ptr = thrust::raw_pointer_cast(&dev_thetay[0]);
-
-    cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-    betaftest<<<1048576 / 64, 64>>>(1048576, l_ptr, tx_ptr, tx_ptr, bx_ptr,
-                                     by_ptr, Ds, Dds);
-    // thrust::host_vector<Vector2D<float>> h_betas(betas);
-	lens.destroy();
+    float2 alpha = d_alphas[0];
+    // auto alpha = lens.getAlpha(point);
+    // alpha *= ANGLE_ARCSEC;
+    // EXPECT_EQ(alpha.x(), 2.01259882e-05);
+    // EXPECT_EQ(alpha.y(), 3.91372304e-05);
+    // EXPECT_LT(abs(alpha.x() - 2.01259882e-05), 1e-10);
+    // EXPECT_LT(abs(alpha.y() - 3.91372304e-05), 1e-10);
+    lens.destroy();
 }

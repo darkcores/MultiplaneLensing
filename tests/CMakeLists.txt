@@ -9,8 +9,8 @@ add_executable(unit_tests
 
 add_executable(cu_unit_tests
   util_tests.cu
-  #plummer_tests.cu
-  #composite_tests.cu
+  plummer_tests.cu
+  composite_tests.cu
   #sources_tests.cu
   #api_tests.cu
 )

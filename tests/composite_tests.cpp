@@ -7,8 +7,7 @@
 #include <iostream>
 
 CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
-                                double angularwidth, double mass, double Ds = 0,
-                                double Dds = 0) {
+                                double angularwidth, double mass) {
     CompositeLensBuilder lensbuilder(Dd); // Redshift not used in these tests.
     double xstart = -width / 2;
     double xend = width / 2;
@@ -27,7 +26,7 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
     return lensbuilder;
 }
 
-TEST(CompositeTests, TestAlphaf) {
+TEST(CompositeTests, TestAlpha) {
     Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     double z_d = 0.4;
     auto Dd = cosm.angularDiameterDistance(z_d);
