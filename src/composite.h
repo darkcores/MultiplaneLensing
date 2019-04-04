@@ -17,7 +17,7 @@ class CompositeLens {
 
     int destroy();
 
-    __host__ void update(const float *__restrict__ factors) {
+    __host__ void update(const float *factors) {
         for (int i = 0; i < m_lenses_size; i++) {
             m_lenses[i].update(factors[i]);
         }

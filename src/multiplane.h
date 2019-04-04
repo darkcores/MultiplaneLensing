@@ -38,15 +38,18 @@ class Multiplane {
      */
     int destroy();
 
+	void updateMasses(const std::vector<std::vector<float>> &masses);
+	void updateMassesCu(const std::vector<std::vector<float>> &masses);
+
 /**
  * Trace theta vectors
  */
 #ifdef __CUDACC__
     int traceThetas(const float2 *thetas, float2 *betas, const int n,
-                    const int plane);
+                    const int plane) const;
 #else
     int traceThetas(const Vector2D<float> *thetas, Vector2D<float> *betas,
-                    const int n, const int plane);
+                    const int n, const int plane) const;
 #endif
 };
 

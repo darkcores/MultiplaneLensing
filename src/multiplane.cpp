@@ -37,7 +37,7 @@ void MultiplaneBuilder::prepare() {
             li++;
         }
         m_dist_offsets.push_back(li);
-		// printf("Li val %lu, %lu\n", i, li);
+        // printf("Li val %lu, %lu\n", i, li);
     }
 }
 
@@ -87,19 +87,19 @@ Multiplane MultiplaneBuilder::getMultiPlane() {
 
 int Multiplane::traceThetas(const Vector2D<float> *thetas,
                             Vector2D<float> *betas, const int n,
-                            const int plane) {
+                            const int plane) const {
     int offset = 0;
     for (int i = 0; i < plane; i++) {
         int s = m_dist_offsets[i];
-		offset += s;
-        //offset += (s * (s + 1) / 2);
+        offset += s;
+        // offset += (s * (s + 1) / 2);
     }
 
     int numlenses = m_dist_offsets[plane];
     std::vector<Vector2D<float>> alphas;
     alphas.resize(numlenses);
     // tmp_thetas.resize(numlenses);
-	Vector2D<float> last_theta;
+    Vector2D<float> last_theta;
 
     // For each theta
     for (int z = 0; z < n; z++) {
@@ -114,7 +114,7 @@ int Multiplane::traceThetas(const Vector2D<float> *thetas,
                 if (j == (i - 1)) {
                     // Alpha not yet calculated
                     alphas[j] = m_lenses[j].getAlpha(last_theta);
-					// printf("Alpha %d\n", j);
+                    // printf("Alpha %d\n", j);
                 }
                 t -= alphas[j] * m_dist_lenses[l];
                 l++;
@@ -132,4 +132,10 @@ int Multiplane::traceThetas(const Vector2D<float> *thetas,
         betas[z] = t;
     }
     return 0;
+}
+
+void Multiplane::updateMasses(const std::vector<std::vector<float>> &masses) {
+	for (size_t i =0; i < masses.size(); i++) {
+		m_lenses[i].update(masses[i].data());
+	}
 }

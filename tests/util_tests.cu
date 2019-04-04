@@ -19,6 +19,7 @@ __global__ void scalegpu(int n, Vector2D<double> *data, double scalar) {
     }
 }
 
+/*
 __global__ void cosmologycalc(int n, double *redshifts, double *angdists) {
     int i = threadIdx.x;
     if (i < n) {
@@ -26,6 +27,7 @@ __global__ void cosmologycalc(int n, double *redshifts, double *angdists) {
         angdists[i] = cosm.angularDiameterDistance(0.0, redshifts[i]);
     }
 }
+*/
 
 template <typename T> struct mul {
     __device__ T operator()(const T &x, double y) const { return x * y; }
@@ -52,6 +54,7 @@ TEST(UtilCuTests, ScalingDouble) {
     ASSERT_EQ(H[1].x(), 1);
 }
 
+/*
 TEST(UtilCuTests, CosmologyTests) {
     thrust::device_vector<double> redshifts(128);
     thrust::device_vector<double> angdists(128);
@@ -64,3 +67,4 @@ TEST(UtilCuTests, CosmologyTests) {
     const double x127 = angdists[127] / DIST_MPC;
     ASSERT_EQ((int)x127, 99);
 }
+*/

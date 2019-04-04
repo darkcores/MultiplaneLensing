@@ -80,3 +80,63 @@ TEST(MultiplaneTests, TestTrace) {
 
     mp.destroy();
 }
+
+TEST(MultiplaneTests, TestTraceUpdate) {
+    Cosmology cosm(0.7, 0.3, 0.0, 0.7);
+    double z_d1 = 0.4;
+    double z_d2 = 1.0;
+    auto Dd1 = cosm.angularDiameterDistance(z_d1);
+    auto Dd2 = cosm.angularDiameterDistance(z_d2);
+
+    MultiplaneBuilder builder(cosm);
+    auto lensbuilder = createGrid(z_d1, Dd1, 3, 15, 15, 5, 1e13 * MASS_SOLAR);
+    builder.addPlane(lensbuilder);
+    auto lensbuilder2 = createGrid(z_d2, Dd2, 3, 15, 15, 5, 1e13 * MASS_SOLAR);
+    builder.addPlane(lensbuilder2);
+
+    std::vector<float> srcs{0.2, 0.8, 1.5, 2.5};
+    builder.setRedshifts(srcs);
+
+    auto mp = builder.getCuMultiPlane();
+
+    std::vector<std::vector<float>> factors{{0, 1, 0, 1, 0, 0.5, 0, 2, 0},
+                                            {1, 0.5, 0, 1, 1.5, 0, 0, 1, 0.5}};
+    mp.updateMassesCu(factors);
+
+    float2 point{.x = 2, .y = 1};
+	thrust::host_vector<float2> thetas;
+	thetas.push_back(point);
+	thrust::host_vector<float2> betas(1);
+
+	thrust::device_vector<float2> d_thetas(thetas);
+	thrust::device_vector<float2> d_betas(1);
+
+	float2 *thetasptr = thrust::raw_pointer_cast(&d_thetas[0]);
+	float2 *betasptr = thrust::raw_pointer_cast(&d_betas[0]);
+
+	mp.traceThetas(thetasptr, betasptr, 1, 0);
+	betas = d_betas;
+	EXPECT_EQ(betas[0].x, 2.0);
+	EXPECT_EQ(betas[0].y, 1.0);
+	// printf("Beta: %f; %f\n", betas[0].x(), betas[0].y());
+
+	mp.traceThetas(thetasptr, betasptr, 1, 1);
+	betas = d_betas;
+	EXPECT_LT(fabs(betas[0].x - 4.607982), 1e-5);
+	EXPECT_LT(fabs(betas[0].y + 1.687718), 1e-5);
+	// printf("Beta: %f; %f\n", betas[0].x(), betas[0].y());
+
+	mp.traceThetas(thetasptr, betasptr, 1, 2);
+	betas = d_betas;
+	EXPECT_LT(fabs(betas[0].x - 3.180912), 1e-5);
+	EXPECT_LT(fabs(betas[0].y + 2.014467), 1e-5);
+	// printf("Beta: %f; %f\n", betas[0].x(), betas[0].y());
+
+	mp.traceThetas(thetasptr, betasptr, 1, 3);
+	betas = d_betas;
+	EXPECT_LT(fabs(betas[0].x - 1.663422), 1e-5);
+	EXPECT_LT(fabs(betas[0].y + 1.857666), 1e-5);
+	// printf("Beta: %f; %f\n", betas[0].x(), betas[0].y());
+
+    mp.destroy();
+}

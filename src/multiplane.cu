@@ -96,15 +96,15 @@ __global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
 
     if (z < n) {
         float2 last_theta;
-		const int alphaoffset = threadIdx.x * numlenses;
-		int l = 0;
+        const int alphaoffset = threadIdx.x * numlenses;
+        int l = 0;
         for (int i = 0; i <= numlenses; i++) {
             auto t = thetas[z];
             for (int j = alphaoffset; j < (i + alphaoffset); j++) {
                 if (j == ((i + alphaoffset) - 1)) {
                     // Alpha not yet calculated
                     alphas[j] = lenses[j].getAlpha(last_theta);
-					// printf("Alpha %d\n", j);
+                    // printf("Alpha %d\n", j);
                 }
                 t.x -= alphas[j].x * dist_lenses[l];
                 t.y -= alphas[j].y * dist_lenses[l];
@@ -113,7 +113,7 @@ __global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
             last_theta = t;
         }
 
-		l = offset;
+        l = offset;
         auto t = thetas[z];
         for (int i = alphaoffset; i < (alphaoffset + numlenses); i++) {
             t.x -= alphas[i].x * dist_sources[l];
@@ -125,7 +125,7 @@ __global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
 }
 
 int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
-                            const int plane) {
+                            const int plane) const {
     int offset = 0;
     for (int i = 0; i < plane; i++) {
         int s = m_dist_offsets[i];
@@ -140,4 +140,24 @@ int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
         offset, m_lenses);
 
     return 0;
+}
+
+__global__ void mp_updateMasses(const int n, const float *__restrict__ masses,
+                           const int lens, CompositeLens *__restrict__ lenses) {
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < n) {
+        lenses[lens].update(masses[i], i);
+    }
+}
+
+void Multiplane::updateMassesCu(const std::vector<std::vector<float>> &masses) {
+	thrust::device_vector<float> mass;
+	float *ptr;
+	for (size_t i = 0; i < masses.size(); i++) {
+		mass = masses[i];
+		ptr = thrust::raw_pointer_cast(&mass[0]);
+		size_t size = masses[i].size();
+		mp_updateMasses<<<(size / 64) + 1, 64>>>(size, ptr, i, m_lenses);
+	}
 }
