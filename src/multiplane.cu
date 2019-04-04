@@ -1,9 +1,9 @@
 #include "multiplane.h"
 
 #include "util/error.h"
-#include <thrust/device_vector.h>
 #include <algorithm>
 #include <iostream>
+#include <thrust/device_vector.h>
 
 Multiplane MultiplaneBuilder::getCuMultiPlane() {
     std::vector<CompositeLens> data;
@@ -87,16 +87,57 @@ int Multiplane::destroy() {
     return 0;
 }
 
-int Multiplane::traceThetas(const float2 *thetas, float2 *betas,
-                            const int n, const int plane) {
+__global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
+                              const int plane, const float *dist_lenses,
+                              const float *dist_sources, const int numlenses,
+                              const int offset, CompositeLens *lenses) {
+    extern __shared__ float2 alphas[];
+    const int z = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (z < n) {
+        float2 last_theta;
+		const int alphaoffset = threadIdx.x * numlenses;
+		int l = 0;
+        for (int i = 0; i <= numlenses; i++) {
+            auto t = thetas[z];
+            for (int j = alphaoffset; j < (i + alphaoffset); j++) {
+                if (j == ((i + alphaoffset) - 1)) {
+                    // Alpha not yet calculated
+                    alphas[j] = lenses[j].getAlpha(last_theta);
+					// printf("Alpha %d\n", j);
+                }
+                t.x -= alphas[j].x * dist_lenses[l];
+                t.y -= alphas[j].y * dist_lenses[l];
+                l++;
+            }
+            last_theta = t;
+        }
+
+		l = offset;
+        auto t = thetas[z];
+        for (int i = alphaoffset; i < (alphaoffset + numlenses); i++) {
+            t.x -= alphas[i].x * dist_sources[l];
+            t.y -= alphas[i].y * dist_sources[l];
+            l++;
+        }
+        betas[z] = t;
+    }
+}
+
+int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
+                            const int plane) {
     int offset = 0;
     for (int i = 0; i < plane; i++) {
         int s = m_dist_offsets[i];
-		offset += s;
+        offset += s;
     }
 
     int numlenses = m_dist_offsets[plane];
-	thrust::device_vector<float2> alphas(numlenses * n);
+    int sh_bytes = numlenses * 256;
+    // thrust::device_vector<float2> alphas(numlenses * n);
+    mp_traceTheta<<<(n / 256) + 1, 256, sh_bytes>>>(
+        n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
+        offset, m_lenses);
 
     return 0;
 }
