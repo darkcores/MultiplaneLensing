@@ -10,12 +10,13 @@ class Plummer {
   private:
     const float m_angularwidth2;
     const float m_4GM;
+    float m_4GM_f;
 #ifdef __CUDACC__
     const float2 m_position;
 #else
     const Vector2D<float> m_position;
+	char __padding[4];
 #endif
-    float m_4GM_f;
 
   public:
     /**

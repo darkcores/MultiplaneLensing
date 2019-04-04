@@ -1,7 +1,9 @@
 #pragma once
 
 #include "plummer.h"
+#include "util/error.h"
 #include <vector>
+#include <iostream>
 
 class CompositeLens {
   private:
@@ -11,21 +13,20 @@ class CompositeLens {
 
   public:
     CompositeLens(Plummer *lenses, const int lenses_size,
-                  const bool cuda = false)
-        : m_lenses(lenses), m_lenses_size(lenses_size), m_cuda(cuda) {}
+                  const bool cuda = false);
 
     int destroy();
 
-	__host__ void update(const float *__restrict__ factors) {
-		for (int i = 0; i < m_lenses_size; i++) {
-			m_lenses[i].update(factors[i]);
-		}
-	}
+    __host__ void update(const float *__restrict__ factors) {
+        for (int i = 0; i < m_lenses_size; i++) {
+            m_lenses[i].update(factors[i]);
+        }
+    }
 
-	__device__ void update(const float &factor, const int idx) {
-		m_lenses[idx].update(factor);
-	}
-	
+    __device__ void update(const float &factor, const int idx) {
+        m_lenses[idx].update(factor);
+    }
+
 #ifdef __CUDACC__
     /**
      * Get alpha vector (single precision, with scaling).
@@ -48,35 +49,30 @@ class CompositeLens {
         return alpha;
     }
 #else
-	__host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
-		Vector2D<float> alpha(0, 0), movedtheta;
+    __host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
+        Vector2D<float> alpha(0, 0), movedtheta;
         for (int i = 0; i < m_lenses_size; i++) {
             movedtheta = m_lenses[i].getAlpha(theta);
-			alpha += movedtheta;
-		}
-		return alpha;
-	}
+            alpha += movedtheta;
+        }
+        return alpha;
+    }
 #endif
 };
 
 /**
- * Builder for CompositeLens. Please beware currently also manager
- * memory for CompositeLens, will change in the future. For now, do
- * not delete until CompositeLens is no longer needed.
+ * Builder for CompositeLens.
  */
 class CompositeLensBuilder {
   private:
-    std::vector<Plummer> m_lenses;
-
     float m_redshift;
+    std::vector<Plummer> m_lenses;
 
   public:
     /**
      * New CompositeLensBuilder.
      */
-    CompositeLensBuilder(const float redshift) {
-        m_redshift = redshift;
-    }
+    CompositeLensBuilder(const float redshift) { m_redshift = redshift; }
 
     float redshift() const { return m_redshift; }
 

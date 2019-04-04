@@ -4,14 +4,21 @@
 #include <cstring>
 #include <iostream>
 
+CompositeLens::CompositeLens(Plummer *lenses, const int lenses_size,
+                             const bool cuda)
+    : m_lenses(lenses), m_lenses_size(lenses_size), m_cuda(cuda) {}
+
 void CompositeLensBuilder::addLens(const Plummer &lens) {
     m_lenses.push_back(lens);
 }
 
 CompositeLens CompositeLensBuilder::getLens() {
     // m_lenses.push_back(LensData());
-	Plummer *lens_ptr = nullptr;
+    Plummer *lens_ptr = nullptr;
     size_t size = sizeof(Plummer) * m_lenses.size();
+	// printf("Plummer size: %lu\n", sizeof(Plummer)); 
+	// printf("Lenses memory: %p\n", &m_lenses[0]);
+    // printf("Lenses in composite: %lu\n", m_lenses.size());
     if (size == 0) {
         std::cerr << "No lenses added" << std::endl;
         std::terminate();
