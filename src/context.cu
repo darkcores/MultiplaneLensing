@@ -25,7 +25,7 @@ CompositeLensBuilder
 MultiPlaneContext::buildLens(const float redshift,
                              const std::vector<PlummerParams> &params) {
     CompositeLensBuilder builder(redshift);
-	double Dd = m_cosmology.angularDiameterDistance(redshift);
+    double Dd = m_cosmology.angularDiameterDistance(redshift);
     for (auto &param : params) {
         float2 position = param.position.f2();
         Plummer plum(Dd, param.mass, param.angularwidth, 1 / m_angularUnit,
@@ -81,8 +81,8 @@ int MultiPlaneContext::setThetas(
         size_t offset = 0;
         for (size_t i = 0; i < thetas.size(); i++) {
             size_t size = sizeof(float2) * thetas[i].size();
-            gpuErrchk(cudaMemcpy(&m_theta[offset], &thetas[i][0], size,
-                                 cudaMemcpyHostToDevice));
+            gpuErrchk(cudaMemcpyAsync(&m_theta[offset], &thetas[i][0], size,
+                                      cudaMemcpyHostToDevice));
             offset = m_theta_count[i];
         }
         size_t beta_size = sizeof(float2) * m_theta_len;
@@ -113,9 +113,9 @@ int MultiPlaneContext::calculatePositions(
             // printf("Betas (%d) size: %lu\n", i, m_betas[i].size());
             // printf("Betas ptr: %p\n", &m_betas[i][0]);
             // printf("Tcount: %lu\n", tcount);
-            gpuErrchk(cudaMemcpy(&m_betas[i][0], &m_beta[offset],
-                                 sizeof(float2) * tcount,
-                                 cudaMemcpyDeviceToHost));
+            gpuErrchk(cudaMemcpyAsync(&m_betas[i][0], &m_beta[offset],
+                                      sizeof(float2) * tcount,
+                                      cudaMemcpyDeviceToHost));
             offset = m_theta_count[i];
         }
 

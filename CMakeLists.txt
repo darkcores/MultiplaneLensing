@@ -20,7 +20,10 @@ check_include_file(getopt.h HAVE_GETOPT_H)
 
 include(CheckLanguage)
 check_language(CUDA)
-set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=32 -lineinfo")
+set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=32")
+if (DEBUG)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -lineinfo")
+endif()
 # -ftz=true
 # -prec-div=false
 # -prec-sqrt=false

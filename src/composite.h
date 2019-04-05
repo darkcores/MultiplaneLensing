@@ -35,14 +35,12 @@ class CompositeLens {
      * @returns Alpha vector.
      */
     __host__ __device__ float2 getAlpha(const float2 &theta) const {
-        float2 alpha, movedtheta;
+        float2 alpha;
         alpha.x = 0;
         alpha.y = 0;
-#ifdef __CUDA_ARCH__
 #pragma unroll 16
-#endif
         for (int i = 0; i < m_lenses_size; i++) {
-            movedtheta = m_lenses[i].getAlpha(theta);
+            const float2 movedtheta = m_lenses[i].getAlpha(theta);
             alpha.x += movedtheta.x;
             alpha.y += movedtheta.y;
         }

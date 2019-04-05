@@ -4,7 +4,7 @@
 #include <iostream>
 
 // Multiplane CUDA API header
-#include <multiplane_cu.h>
+#include <context.h>
 
 /**
  * Print help & options.
@@ -36,7 +36,7 @@ std::vector<float> source_z;
 // Thetas
 std::vector<Vector2D<float>> thetas;
 // Mass params
-std::vector<std::vector<double>> masses;
+std::vector<std::vector<float>> masses;
 
 // Filenames
 char *infile = nullptr;
@@ -183,7 +183,12 @@ int main(int argc, char *argv[]) {
     error = ctx.init(lens_z, lens_params, source_z);
     if (error)
         return error;
-    error = ctx.setThetas(thetas);
+
+	std::vector<std::vector<Vector2D<float>>> th;
+	th.push_back(thetas);
+	th.push_back(thetas);
+	th.push_back(thetas);
+    error = ctx.setThetas(th);
     if (error)
         return error;
 

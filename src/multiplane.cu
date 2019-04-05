@@ -138,14 +138,10 @@ __global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
     const int z = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (z < n) {
-		/*
-		if (z == 0) {
-			printf("\x1B[33m");
-		}
-		*/
         float2 last_theta;
         const int alphaoffset = threadIdx.x * numlenses;
         int l = 0;
+
         for (int i = 0; i <= numlenses; i++) {
             auto t = thetas[z];
             for (int j = alphaoffset; j < (i + alphaoffset); j++) {
@@ -163,24 +159,52 @@ __global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
         l = offset;
         auto t = thetas[z];
         for (int i = alphaoffset; i < (alphaoffset + numlenses); i++) {
-			/*
-            if (z == 0) {
-                printf("K: alpha(%d): [%f; %f]\n", i, alphas[i].x, alphas[i].y);
-            }
-			*/
             t.x -= alphas[i].x * dist_sources[l];
             t.y -= alphas[i].y * dist_sources[l];
             l++;
         }
         betas[z] = t;
     }
+}
 
-	/*
-    if (z == 0) {
-        printf("K: Theta: [%f; %f]\n", thetas[0].x, thetas[0].y);
-        printf("K: Beta: [%f; %f] \x1B[0m \n", betas[0].x, betas[0].y);
+__global__ void mp_traceThetaGlobal(const int n,
+                                    const float2 *__restrict__ thetas,
+                                    float2 *__restrict__ betas, const int plane,
+                                    const float *__restrict__ dist_lenses,
+                                    const float *__restrict__ dist_sources,
+                                    const int numlenses, const int offset,
+                                    const CompositeLens *__restrict__ lenses,
+                                    float2 *__restrict__ alphas) {
+    const int z = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (z < n) {
+        float2 last_theta;
+        const int alphaoffset = z * numlenses;
+        int l = 0;
+
+        for (int i = 0; i <= numlenses; i++) {
+            auto t = thetas[z];
+            for (int j = alphaoffset; j < (i + alphaoffset); j++) {
+                if (j == ((i + alphaoffset) - 1)) {
+                    // Alpha not yet calculated
+                    alphas[j] = lenses[j - alphaoffset].getAlpha(last_theta);
+                }
+                t.x -= alphas[j].x * dist_lenses[l];
+                t.y -= alphas[j].y * dist_lenses[l];
+                l++;
+            }
+            last_theta = t;
+        }
+
+        l = offset;
+        auto t = thetas[z];
+        for (int i = alphaoffset; i < (alphaoffset + numlenses); i++) {
+            t.x -= alphas[i].x * dist_sources[l];
+            t.y -= alphas[i].y * dist_sources[l];
+            l++;
+        }
+        betas[z] = t;
     }
-	*/
 }
 
 int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
@@ -192,12 +216,13 @@ int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
     }
 
     int numlenses = m_dist_offsets[plane];
-    int sh_bytes = numlenses * 256 * sizeof(float2);
+    // int sh_bytes = numlenses * 256 * sizeof(float2);
     // printf("Shared mem usage: %d\n", sh_bytes);
-    // thrust::device_vector<float2> alphas(numlenses * n);
-    mp_traceTheta<<<(n / 256) + 1, 256, sh_bytes>>>(
+    thrust::device_vector<float2> alphas(numlenses * n);
+    float2 *ptr = thrust::raw_pointer_cast(&alphas[0]);
+    mp_traceThetaGlobal<<<(n / 256) + 1, 256>>>(
         n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
-        offset, m_lenses);
+        offset, m_lenses, ptr);
     gpuErrchk(cudaGetLastError());
 
     return 0;

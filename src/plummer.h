@@ -9,14 +9,14 @@
  */
 class Plummer {
   private:
-    const float m_angularwidth2;
-    const float m_4GM;
+    float m_angularwidth2;
+    float m_4GM;
     float m_4GM_f;
 #ifdef __CUDACC__
-    const float2 m_position;
+    float2 m_position;
 #else
-    const Vector2D<float> m_position;
-	char __padding[4];
+    Vector2D<float> m_position;
+    char __padding[4];
 #endif
 
   public:
@@ -35,8 +35,11 @@ class Plummer {
                 (scale * scale)),
           m_position(position) {
         m_4GM_f = m_4GM;
-		// printf("\x1B[34m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
+        // printf("\x1B[34m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
+
+    __device__ Plummer()
+        : m_angularwidth2(0), m_4GM(0), m_position(float2{.x = 0, .y = 0}) {}
 #else
     Plummer(const double Dd, const double mass, const double angularwidth,
             const double scale, const Vector2D<float> position)
@@ -45,13 +48,13 @@ class Plummer {
                 (scale * scale)),
           m_position(position) {
         m_4GM_f = m_4GM;
-		// printf("\x1B[35m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
+        // printf("\x1B[35m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
 #endif
 
     __host__ __device__ void update(const float scalar) {
         m_4GM_f = m_4GM * scalar;
-		// printf("\x1B[31m4GM: %f (* %f)\x1B[0m \n", m_4GM_f, scalar);
+        // printf("\x1B[31m4GM: %f (* %f)\x1B[0m \n", m_4GM_f, scalar);
     }
 
 #ifdef __CUDACC__
