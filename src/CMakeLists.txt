@@ -2,11 +2,9 @@ SET(COMMON_SRC
   plummer.cu
   composite.cu
   composite.cpp
-  # sources.cu
-  # sources.cpp
   multiplane.cu
   multiplane.cpp
-  # multiplane_cu.cu
+  context.cu
   util/cosmology.cu
 )
 

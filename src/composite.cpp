@@ -2,6 +2,7 @@
 #include "util/error.h"
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 #include <iostream>
 
 CompositeLens::CompositeLens(Plummer *lenses, const int lenses_size,
@@ -14,6 +15,7 @@ void CompositeLensBuilder::addLens(const Plummer &lens) {
 
 CompositeLens CompositeLensBuilder::getLens() {
     // m_lenses.push_back(LensData());
+	// printf("Composite size: %lu\n", sizeof(CompositeLens));
     Plummer *lens_ptr = nullptr;
     size_t size = sizeof(Plummer) * m_lenses.size();
 	// printf("Plummer size: %lu\n", sizeof(Plummer)); 

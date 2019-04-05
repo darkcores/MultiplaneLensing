@@ -2,6 +2,7 @@
 
 #include "util/constants.h"
 #include "util/vector2d.h"
+#include <cstdio>
 
 /**
  * Plummer lens class.
@@ -34,6 +35,7 @@ class Plummer {
                 (scale * scale)),
           m_position(position) {
         m_4GM_f = m_4GM;
+		// printf("\x1B[34m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
 #else
     Plummer(const double Dd, const double mass, const double angularwidth,
@@ -43,11 +45,13 @@ class Plummer {
                 (scale * scale)),
           m_position(position) {
         m_4GM_f = m_4GM;
+		// printf("\x1B[35m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
 #endif
 
     __host__ __device__ void update(const float scalar) {
         m_4GM_f = m_4GM * scalar;
+		// printf("\x1B[31m4GM: %f (* %f)\x1B[0m \n", m_4GM_f, scalar);
     }
 
 #ifdef __CUDACC__

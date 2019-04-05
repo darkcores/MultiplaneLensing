@@ -14,5 +14,11 @@ compile_commands.json
 *.raw
 .cproject
 .project
-.gcno
-.gcda
+*.gcno
+*.gcda
+*.tex
+*#
+*.nvvp
+profile.nsight*
+ltximg/
+*.pdf

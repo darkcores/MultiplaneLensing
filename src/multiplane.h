@@ -87,7 +87,7 @@ class MultiplaneBuilder {
      * If we aren't using source planes with points we only need the
      * redshifts for beta vectors
      */
-    void setRedshifts(std::vector<float> &redshifts) { m_source_z = redshifts; }
+    void setRedshifts(const std::vector<float> &redshifts) { m_source_z = redshifts; }
 
     /**
      * Get Multiplane (CPU).
@@ -97,4 +97,5 @@ class MultiplaneBuilder {
      * Get Multiplane (GPU/CUDA).
      */
     Multiplane getCuMultiPlane();
+    Multiplane *getCuMultiPlanePtr();
 };

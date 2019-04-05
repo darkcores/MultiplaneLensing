@@ -15,7 +15,7 @@ void MultiplaneBuilder::prepare() {
 
     // Calculate distances for all the lenses
     double sz, lz, Di, Dji, Dd;
-    for (size_t i = 0; i < m_builders.size(); i++) {
+    for (size_t i = 0; i <= m_builders.size(); i++) {
         lz = m_builders[i].redshift();
         Di = m_cosm.angularDiameterDistance(lz);
         for (size_t j = 0; j < i; j++) {

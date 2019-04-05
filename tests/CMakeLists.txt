@@ -12,8 +12,7 @@ add_executable(cu_unit_tests
   plummer_tests.cu
   composite_tests.cu
   multiplane_tests.cu
-  #sources_tests.cu
-  #api_tests.cu
+  api_tests.cu
 )
 
 target_link_libraries(unit_tests

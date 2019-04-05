@@ -2,8 +2,8 @@
 
 #include "plummer.h"
 #include "util/error.h"
-#include <vector>
 #include <iostream>
+#include <vector>
 
 class CompositeLens {
   private:
