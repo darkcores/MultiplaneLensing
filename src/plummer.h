@@ -30,12 +30,13 @@ class Plummer {
 #ifdef __CUDACC__
     Plummer(const double Dd, const double mass, const double angularwidth,
             const double scale, const float2 position) {
-        m_4GM =
+        float _4GM =
             (4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) * (scale * scale);
-		m_data.x = angularwidth * angularwidth;
-        m_data.y = m_4GM;
-		m_data.z = position.x;
-		m_data.w = position.y;
+        m_data.x = angularwidth * angularwidth;
+        m_data.y = _4GM;
+        m_data.z = position.x;
+        m_data.w = position.y;
+        m_4GM = _4GM;
         // printf("\x1B[34m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
 
@@ -43,21 +44,21 @@ class Plummer {
 #else
     Plummer(const double Dd, const double mass, const double angularwidth,
             const double scale, const Vector2D<float> position)
-        : m_angularwidth2(angularwidth * angularwidth),
-          m_4GM((4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) *
-                (scale * scale)),
-          m_position(position) {
-        m_4GM_f = m_4GM;
+        : m_angularwidth2(angularwidth * angularwidth), m_position(position) {
+        float _4GM =
+            (4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) * (scale * scale);
+        m_4GM_f = _4GM;
+        m_4GM = _4GM;
         // printf("\x1B[35m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
 #endif
 
     __host__ __device__ void update(const float scalar) {
-		#ifdef __CUDACC__
-		m_data.y = m_4GM * scalar;
-		#else
+#ifdef __CUDACC__
+        m_data.y = m_4GM * scalar;
+#else
         m_4GM_f = m_4GM * scalar;
-		#endif
+#endif
         // printf("\x1B[31m4GM: %f (* %f)\x1B[0m \n", m_4GM_f, scalar);
     }
 

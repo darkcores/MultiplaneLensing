@@ -36,26 +36,41 @@ class CompositeLens {
      */
     __host__ __device__ float2 getAlpha(const float2 &theta) const {
         float2 alpha, movedtheta;
+        float len;
         alpha.x = 0;
         alpha.y = 0;
 
-        Plummer p0 = m_lenses[0];
-        Plummer p1;
+        float4 p0 = m_lenses[0].m_data;
+        float4 p1;
         int i;
-		const int loop = m_lenses_size - 1;
-#pragma unroll 16
+        const int loop = m_lenses_size - 1;
+#pragma unroll 32
         for (i = 1; i < loop; i++) {
-            p1 = m_lenses[i];
-            movedtheta = p0.getAlpha(theta);
+            p1 = m_lenses[i].m_data;
+            movedtheta = theta;
+            movedtheta.x -= p0.z;
+            movedtheta.y -= p0.w;
+            len = (movedtheta.x * movedtheta.x) + (movedtheta.y * movedtheta.y);
+            len += p0.x;
+            len = (1 / len) * p0.y;
+            movedtheta.x *= len;
+            movedtheta.y *= len;
             alpha.x += movedtheta.x;
             alpha.y += movedtheta.y;
-			i++;
-            p0 = m_lenses[i];
-            movedtheta = p1.getAlpha(theta);
+            i++;
+            p0 = m_lenses[i].m_data;
+            movedtheta = theta;
+            movedtheta.x -= p1.z;
+            movedtheta.y -= p1.w;
+            len = (movedtheta.x * movedtheta.x) + (movedtheta.y * movedtheta.y);
+            len += p1.x;
+            len = (1 / len) * p1.y;
+            movedtheta.x *= len;
+            movedtheta.y *= len;
             alpha.x += movedtheta.x;
             alpha.y += movedtheta.y;
         }
-		i -= 1;
+        i -= 1;
         for (; i < m_lenses_size; i++) {
             movedtheta = m_lenses[i].getAlpha(theta);
             alpha.x += movedtheta.x;
@@ -64,19 +79,19 @@ class CompositeLens {
         return alpha;
     }
 
-	__device__ float2 getAlphaStrided(const float2 &theta, const int s) const {
+    __device__ float2 getAlphaStrided(const float2 &theta, const int s) const {
         float2 alpha, movedtheta;
         alpha.x = 0;
         alpha.y = 0;
 
 #pragma unroll 16
-        for (int i = s; i < m_lenses_size; i+= 2) {
+        for (int i = s; i < m_lenses_size; i += 2) {
             movedtheta = m_lenses[i].getAlpha(theta);
             alpha.x += movedtheta.x;
             alpha.y += movedtheta.y;
         }
         return alpha;
-	}
+    }
 #else
     __host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
         Vector2D<float> alpha(0, 0), movedtheta;
