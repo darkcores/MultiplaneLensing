@@ -7,8 +7,10 @@
 
 Multiplane MultiplaneBuilder::getCuMultiPlane() {
     std::vector<CompositeLens> data;
+    std::vector<int> subl_size;
 
     for (size_t i = 0; i < m_builders.size(); i++) {
+        subl_size.push_back(m_builders[i].length());
         auto lens = m_builders[i].getCuLens();
         data.push_back(lens);
     }
@@ -45,13 +47,16 @@ Multiplane MultiplaneBuilder::getCuMultiPlane() {
                          cudaMemcpyHostToDevice));
 
     return Multiplane(lens_ptr, data.size(), src_ptr, m_source_z.size(),
-                      dist_lens_ptr, dist_src_ptr, m_dist_offsets, true);
+                      dist_lens_ptr, dist_src_ptr, m_dist_offsets, subl_size,
+                      true);
 }
 
 Multiplane *MultiplaneBuilder::getCuMultiPlanePtr() {
     std::vector<CompositeLens> data;
+    std::vector<int> subl_size;
 
     for (size_t i = 0; i < m_builders.size(); i++) {
+        subl_size.push_back(m_builders[i].length());
         auto lens = m_builders[i].getCuLens();
         data.push_back(lens);
     }
@@ -88,7 +93,8 @@ Multiplane *MultiplaneBuilder::getCuMultiPlanePtr() {
                          cudaMemcpyHostToDevice));
 
     return new Multiplane(lens_ptr, data.size(), src_ptr, m_source_z.size(),
-                          dist_lens_ptr, dist_src_ptr, m_dist_offsets, true);
+                          dist_lens_ptr, dist_src_ptr, m_dist_offsets,
+                          subl_size, true);
 }
 
 int Multiplane::destroy() {
@@ -130,43 +136,6 @@ int Multiplane::destroy() {
     return 0;
 }
 
-__global__ void mp_traceTheta(const int n, const float2 *thetas, float2 *betas,
-                              const int plane, const float *dist_lenses,
-                              const float *dist_sources, const int numlenses,
-                              const int offset, CompositeLens *lenses) {
-    extern __shared__ float2 alphas[];
-    const int z = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (z < n) {
-        float2 last_theta;
-        const int alphaoffset = threadIdx.x * numlenses;
-        int l = 0;
-
-        for (int i = 0; i <= numlenses; i++) {
-            auto t = thetas[z];
-            for (int j = alphaoffset; j < (i + alphaoffset); j++) {
-                if (j == ((i + alphaoffset) - 1)) {
-                    // Alpha not yet calculated
-                    alphas[j] = lenses[j - alphaoffset].getAlpha(last_theta);
-                }
-                t.x -= alphas[j].x * dist_lenses[l];
-                t.y -= alphas[j].y * dist_lenses[l];
-                l++;
-            }
-            last_theta = t;
-        }
-
-        l = offset;
-        auto t = thetas[z];
-        for (int i = alphaoffset; i < (alphaoffset + numlenses); i++) {
-            t.x -= alphas[i].x * dist_sources[l];
-            t.y -= alphas[i].y * dist_sources[l];
-            l++;
-        }
-        betas[z] = t;
-    }
-}
-
 __global__ void mp_traceThetaGlobal(const int n,
                                     const float2 *__restrict__ thetas,
                                     float2 *__restrict__ betas, const int plane,
@@ -175,35 +144,95 @@ __global__ void mp_traceThetaGlobal(const int n,
                                     const int numlenses, const int offset,
                                     const CompositeLens *__restrict__ lenses,
                                     float2 *__restrict__ alphas) {
-    const int z = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int z = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (z < n) {
         float2 last_theta;
-        const int alphaoffset = z * numlenses;
-        int l = 0;
-
-        for (int i = 0; i <= numlenses; i++) {
+        // const int alphaoffset = z * numlenses;
+        unsigned int l = 0;
+        unsigned int idj;
+        for (unsigned int i = 0; i <= numlenses; i++) {
             auto t = thetas[z];
-            for (int j = alphaoffset; j < (i + alphaoffset); j++) {
-                if (j == ((i + alphaoffset) - 1)) {
-                    // Alpha not yet calculated
-                    alphas[j] = lenses[j - alphaoffset].getAlpha(last_theta);
-                }
-                t.x -= alphas[j].x * dist_lenses[l];
-                t.y -= alphas[j].y * dist_lenses[l];
+            if (i > 0) {
+                idj = z + (n * (i - 1));
+                alphas[idj] = lenses[i - 1].getAlpha(last_theta);
+            }
+            idj = z;
+            for (unsigned int j = 0; j < i; j++) {
+                t.x -= alphas[idj].x * dist_lenses[l];
+                t.y -= alphas[idj].y * dist_lenses[l];
                 l++;
+                idj += n;
             }
             last_theta = t;
         }
 
         l = offset;
         auto t = thetas[z];
-        for (int i = alphaoffset; i < (alphaoffset + numlenses); i++) {
-            t.x -= alphas[i].x * dist_sources[l];
-            t.y -= alphas[i].y * dist_sources[l];
+        idj = z;
+        for (unsigned int i = 0; i < (numlenses); i++) {
+            t.x -= alphas[idj].x * dist_sources[l];
+            t.y -= alphas[idj].y * dist_sources[l];
             l++;
+            idj += n;
         }
         betas[z] = t;
+    }
+}
+
+__global__ void mp_traceThetaGlobalStrided(
+    const int n, const float2 *__restrict__ thetas, float2 *__restrict__ betas,
+    const int plane, const float *__restrict__ dist_lenses,
+    const float *__restrict__ dist_sources, const int numlenses,
+    const int offset, const CompositeLens *__restrict__ lenses,
+    float2 *alphas) {
+    const int even = threadIdx.x % 2;
+    const int thread = threadIdx.x / 2;
+    const unsigned int z = blockIdx.x * (blockDim.x / 2) + thread;
+    __shared__ float2 localAlphas[128];
+
+    if (z < n) {
+        float2 last_theta;
+        // const int alphaoffset = z * numlenses;
+        unsigned int l = 0;
+        unsigned int idj;
+
+        for (unsigned int i = 0; i <= numlenses; i++) {
+            auto t = thetas[z];
+            if (i > 0) {
+                idj = z + (n * (i - 1));
+                float2 alpha_l =
+                    lenses[i - 1].getAlphaStrided(last_theta, even);
+                if (even) {
+                    localAlphas[thread] = alpha_l;
+                } else {
+                    alpha_l.x += localAlphas[thread].x;
+                    alpha_l.y += localAlphas[thread].y;
+                    alphas[idj] = alpha_l;
+                }
+            }
+            idj = z;
+            for (unsigned int j = 0; j < i; j++) {
+                t.x -= alphas[idj].x * dist_lenses[l];
+                t.y -= alphas[idj].y * dist_lenses[l];
+                l++;
+                idj += n;
+            }
+            last_theta = t;
+        }
+
+        if (even) {
+            l = offset;
+            auto t = thetas[z];
+            idj = z;
+            for (unsigned int i = 0; i < (numlenses); i++) {
+                t.x -= alphas[idj].x * dist_sources[l];
+                t.y -= alphas[idj].y * dist_sources[l];
+                l++;
+                idj += n;
+            }
+            betas[z] = t;
+        }
     }
 }
 
@@ -216,13 +245,16 @@ int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
     }
 
     int numlenses = m_dist_offsets[plane];
-    // int sh_bytes = numlenses * 256 * sizeof(float2);
-    // printf("Shared mem usage: %d\n", sh_bytes);
     thrust::device_vector<float2> alphas(numlenses * n);
     float2 *ptr = thrust::raw_pointer_cast(&alphas[0]);
     mp_traceThetaGlobal<<<(n / 256) + 1, 256>>>(
         n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
         offset, m_lenses, ptr);
+    /*
+        mp_traceThetaGlobalStrided<<<(2 * (n / 256)) + 1, 256>>>(
+            n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
+            offset, m_lenses, ptr);
+    */
     gpuErrchk(cudaGetLastError());
 
     return 0;

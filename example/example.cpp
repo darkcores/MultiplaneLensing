@@ -180,9 +180,23 @@ int main(int argc, char *argv[]) {
     // Setup
     const Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     MultiPlaneContext ctx(angularUnit, cosm);
-    error = ctx.init(lens_z, lens_params, source_z);
-    if (error)
+
+	std::cout << "Lens redshifts: ";
+	for (auto val : lens_z) {
+		std::cout << val << "; ";
+	}
+	std::cout << std::endl;
+	std::cout << "Source redshifts: ";
+	for (auto &val : source_z) {
+		val += 1;
+		std::cout << val << "; ";
+	}
+	std::cout << std::endl;
+
+	error = ctx.init(lens_z, lens_params, source_z);
+    if (error) {
         return error;
+	}
 
 	std::vector<std::vector<Vector2D<float>>> th;
 	th.push_back(thetas);

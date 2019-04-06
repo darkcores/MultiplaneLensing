@@ -43,9 +43,11 @@ void MultiplaneBuilder::prepare() {
 
 Multiplane MultiplaneBuilder::getMultiPlane() {
     std::vector<CompositeLens> data;
+	std::vector<int> subl_size;
 
     // Get final lenses from builders
     for (size_t i = 0; i < m_builders.size(); i++) {
+		subl_size.push_back(m_builders[i].length());
         auto lens = m_builders[i].getLens();
         data.push_back(lens);
     }
@@ -82,7 +84,7 @@ Multiplane MultiplaneBuilder::getMultiPlane() {
     std::memcpy((void *)dist_src_ptr, &m_dists_sources[0], dist_src_size);
 
     return Multiplane(lens_ptr, data.size(), src_ptr, m_source_z.size(),
-                      dist_lens_ptr, dist_src_ptr, m_dist_offsets);
+                      dist_lens_ptr, dist_src_ptr, m_dist_offsets, subl_size);
 }
 
 int Multiplane::traceThetas(const Vector2D<float> *thetas,

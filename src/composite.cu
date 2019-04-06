@@ -13,6 +13,7 @@ int CompositeLens::destroy() {
 
 CompositeLens CompositeLensBuilder::getCuLens() {
 	// printf("Composite size: %lu\n", sizeof(CompositeLens));
+	// printf("Plummer size: %lu\n", sizeof(Plummer)); 
     Plummer *lens_ptr;
     size_t size = m_lenses.size();
 	// printf("Lenses in composite: %lu\n", size);

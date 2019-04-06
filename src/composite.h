@@ -35,17 +35,48 @@ class CompositeLens {
      * @returns Alpha vector.
      */
     __host__ __device__ float2 getAlpha(const float2 &theta) const {
-        float2 alpha;
+        float2 alpha, movedtheta;
         alpha.x = 0;
         alpha.y = 0;
+
+        Plummer p0 = m_lenses[0];
+        Plummer p1;
+        int i;
+		const int loop = m_lenses_size - 1;
 #pragma unroll 16
-        for (int i = 0; i < m_lenses_size; i++) {
-            const float2 movedtheta = m_lenses[i].getAlpha(theta);
+        for (i = 1; i < loop; i++) {
+            p1 = m_lenses[i];
+            movedtheta = p0.getAlpha(theta);
+            alpha.x += movedtheta.x;
+            alpha.y += movedtheta.y;
+			i++;
+            p0 = m_lenses[i];
+            movedtheta = p1.getAlpha(theta);
+            alpha.x += movedtheta.x;
+            alpha.y += movedtheta.y;
+        }
+		i -= 1;
+        for (; i < m_lenses_size; i++) {
+            movedtheta = m_lenses[i].getAlpha(theta);
             alpha.x += movedtheta.x;
             alpha.y += movedtheta.y;
         }
         return alpha;
     }
+
+	__device__ float2 getAlphaStrided(const float2 &theta, const int s) const {
+        float2 alpha, movedtheta;
+        alpha.x = 0;
+        alpha.y = 0;
+
+#pragma unroll 16
+        for (int i = s; i < m_lenses_size; i+= 2) {
+            movedtheta = m_lenses[i].getAlpha(theta);
+            alpha.x += movedtheta.x;
+            alpha.y += movedtheta.y;
+        }
+        return alpha;
+	}
 #else
     __host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
         Vector2D<float> alpha(0, 0), movedtheta;
@@ -73,6 +104,8 @@ class CompositeLensBuilder {
     CompositeLensBuilder(const float redshift) { m_redshift = redshift; }
 
     float redshift() const { return m_redshift; }
+
+    size_t length() const { return m_lenses.size(); }
 
     /**
      * Add plummer sublens.

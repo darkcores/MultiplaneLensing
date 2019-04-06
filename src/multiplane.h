@@ -13,6 +13,7 @@ class Multiplane {
     float *__restrict__ m_dist_lenses;
     float *__restrict__ m_dist_sources;
     std::vector<int> m_dist_offsets;
+    std::vector<int> m_sublenses_size;
     const int m_lenses_size, m_sources_size;
     const bool m_cuda;
 
@@ -23,7 +24,8 @@ class Multiplane {
      */
     Multiplane(CompositeLens *lenses, int lenses_size, float *sources,
                int sources_size, float *dist_lenses, float *dist_sources,
-               std::vector<int> dist_offsets, bool cuda = false)
+               std::vector<int> dist_offsets, std::vector<int> &subl_size,
+               bool cuda = false)
         : m_lenses_size(lenses_size), m_sources_size(sources_size),
           m_cuda(cuda) {
         m_lenses = lenses;
@@ -31,6 +33,7 @@ class Multiplane {
         m_dist_lenses = dist_lenses;
         m_dist_sources = dist_sources;
         m_dist_offsets = dist_offsets;
+		m_sublenses_size = subl_size;
     }
 
     /**

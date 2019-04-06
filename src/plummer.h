@@ -8,16 +8,16 @@
  * Plummer lens class.
  */
 class Plummer {
-  private:
-    float m_angularwidth2;
-    float m_4GM;
-    float m_4GM_f;
+  public:
 #ifdef __CUDACC__
-    float2 m_position;
+    float4 m_data;
 #else
+    float m_angularwidth2;
+    float m_4GM_f;
     Vector2D<float> m_position;
-    char __padding[4];
+    char __padding[12];
 #endif
+    float m_4GM;
 
   public:
     /**
@@ -29,17 +29,17 @@ class Plummer {
      */
 #ifdef __CUDACC__
     Plummer(const double Dd, const double mass, const double angularwidth,
-            const double scale, const float2 position)
-        : m_angularwidth2(angularwidth * angularwidth),
-          m_4GM((4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) *
-                (scale * scale)),
-          m_position(position) {
-        m_4GM_f = m_4GM;
+            const double scale, const float2 position) {
+        m_4GM =
+            (4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) * (scale * scale);
+		m_data.x = angularwidth * angularwidth;
+        m_data.y = m_4GM;
+		m_data.z = position.x;
+		m_data.w = position.y;
         // printf("\x1B[34m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
 
-    __device__ Plummer()
-        : m_angularwidth2(0), m_4GM(0), m_position(float2{.x = 0, .y = 0}) {}
+    __host__ __device__ Plummer() {}
 #else
     Plummer(const double Dd, const double mass, const double angularwidth,
             const double scale, const Vector2D<float> position)
@@ -53,7 +53,11 @@ class Plummer {
 #endif
 
     __host__ __device__ void update(const float scalar) {
+		#ifdef __CUDACC__
+		m_data.y = m_4GM * scalar;
+		#else
         m_4GM_f = m_4GM * scalar;
+		#endif
         // printf("\x1B[31m4GM: %f (* %f)\x1B[0m \n", m_4GM_f, scalar);
     }
 
@@ -67,12 +71,12 @@ class Plummer {
      */
     __host__ __device__ float2 getAlpha(const float2 &theta) const {
         // printf("Scale factor plummer %f\n", m_scale);
-        auto alpha = theta;
-        alpha.x -= m_position.x;
-        alpha.y -= m_position.y;
+        float2 alpha = theta;
+        alpha.x -= m_data.z;
+        alpha.y -= m_data.w;
         float len = (alpha.x * alpha.x) + (alpha.y * alpha.y);
-        len += m_angularwidth2;
-        len = (1 / len) * m_4GM_f;
+        len += m_data.x;
+        len = (1 / len) * m_data.y;
         alpha.x *= len;
         alpha.y *= len;
         return alpha;
