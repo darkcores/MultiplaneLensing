@@ -162,7 +162,7 @@ TEST(MultiplaneTests, TestTraceFileLens) {
 
     MultiplaneBuilder builder(cosm);
     std::ifstream lensdata(
-        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/testdata.txt");
+        "tests/testdata.txt");
 
     if (!lensdata.is_open())
         throw(1);

@@ -131,7 +131,7 @@ TEST(APITests, TestGrale1) {
     std::vector<std::vector<PlummerParams>> params;
 
     std::ifstream lensdata(
-        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/testdata.txt");
+        "tests/testdata.txt");
 
     if (!lensdata.is_open())
         throw(1);
@@ -160,7 +160,7 @@ TEST(APITests, TestGrale1) {
     lensdata.close();
 
     std::ifstream thetadata(
-        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/test_thetas.txt");
+        "tests/test_thetas.txt");
 
     std::vector<std::vector<Vector2D<float>>> thetas;
     int numthetas = 0;
@@ -193,7 +193,7 @@ TEST(APITests, TestGrale1) {
     ctx.calculatePositions(masses);
 
     std::ifstream betadata(
-        "/home/jorrit/Sync/Universiteit/BAPR/lenstest/tests/test_betas.txt");
+        "tests/test_betas.txt");
 
     int numbetas = 0;
     betadata >> numbetas;
