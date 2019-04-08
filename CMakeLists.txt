@@ -6,7 +6,7 @@ set(default_build_type "RELEASE")
 SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pipe ")
 if (COVERAGE)
   SET(GCC_FLAGS "-std=c++14 -O0 -Wall -Wextra")
-endif()
+endif(COVERAGE)
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -21,9 +21,10 @@ check_include_file(getopt.h HAVE_GETOPT_H)
 include(CheckLanguage)
 check_language(CUDA)
 set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=32")
-if (DEBUG)
+if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -lineinfo")
-endif()
+endif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+# -Xptxas -dlcm=cg
 # -ftz=true
 # -prec-div=false
 # -prec-sqrt=false

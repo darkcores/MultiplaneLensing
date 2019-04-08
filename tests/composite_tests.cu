@@ -20,7 +20,7 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
             Plummer plum(Dd, mass, angularwidth, 1 / ANGLE_ARCSEC,
                          float2{.x = (float)x, .y = (float)y});
             lensbuilder.addLens(plum);
-			// printf("Added lens\n");
+            // printf("Added lens\n");
         }
     }
     return lensbuilder;
@@ -28,12 +28,13 @@ CompositeLensBuilder createGrid(double Dd, int N, double width, double height,
 
 __global__ void alphaCompCalc(int n, float2 *thetas, float2 *alphas,
                               CompositeLens lens) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (i < n) {
+    if (i >= n) {
+		i = n - 1;
         // printf("Thread: %i - Theta: %f\n", i, thetas[i].x);
-        alphas[i] = lens.getAlpha(thetas[i]);
     }
+	alphas[i] = lens.getAlpha(thetas[i]);
 }
 
 TEST(CompositeTests, TestAlpha) {
@@ -43,15 +44,15 @@ TEST(CompositeTests, TestAlpha) {
     auto lensbuilder = createGrid(Dd, 3, 15, 15, 5, 1e13 * MASS_SOLAR);
     auto lens = lensbuilder.getCuLens();
 
-	thrust::host_vector<float2> thetas;
-	thetas.push_back(float2{.x = 1.0, .y = 2.0});
+    thrust::host_vector<float2> thetas;
+    thetas.push_back(float2{.x = 1.0, .y = 2.0});
     thrust::device_vector<float2> d_thetas(thetas), d_alphas(1);
 
     float2 *thetaptr = thrust::raw_pointer_cast(&d_thetas[0]);
     float2 *alphaptr = thrust::raw_pointer_cast(&d_alphas[0]);
     alphaCompCalc<<<1, 32>>>(1, thetaptr, alphaptr, lens);
 
-	thrust::host_vector<float2> alphas(d_alphas);
+    thrust::host_vector<float2> alphas(d_alphas);
     float2 alpha = alphas[0];
     alpha.x *= ANGLE_ARCSEC;
     alpha.y *= ANGLE_ARCSEC;

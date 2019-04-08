@@ -8,6 +8,11 @@
 class CompositeLens {
   private:
     Plummer *__restrict__ m_lenses;
+#ifdef __CUDACC__
+    float4 *__restrict__ m_lens_int;
+#else
+    void *m_lens_int;
+#endif
     const int m_lenses_size;
     const bool m_cuda;
 
@@ -23,11 +28,12 @@ class CompositeLens {
         }
     }
 
+#ifdef __CUDACC__
     __device__ void update(const float &factor, const int idx) {
         m_lenses[idx].update(factor);
+        m_lens_int[idx] = m_lenses[idx].m_data;
     }
 
-#ifdef __CUDACC__
     /**
      * Get alpha vector (single precision, with scaling).
      *
@@ -35,47 +41,54 @@ class CompositeLens {
      * @returns Alpha vector.
      */
     __host__ __device__ float2 getAlpha(const float2 &theta) const {
-        float2 alpha, movedtheta;
-        float len;
+		const unsigned int DIM = 128;
+        float2 alpha, t;
         alpha.x = 0;
         alpha.y = 0;
+#ifdef __CUDA_ARCH__
+        __shared__ float4 cache[DIM];
 
-        float4 p0 = m_lenses[0].m_data;
-        float4 p1;
-        int i;
-        const int loop = m_lenses_size - 1;
+        // #pragma unroll 64
+        for (unsigned int i = 0; i < m_lenses_size; i += DIM) {
+            // Load to cache
+            const unsigned int idx = i + threadIdx.x;
+            if (idx < m_lenses_size) {
+                // const float4 *r = m_lens_int + (i + threadIdx.x);
+                cache[threadIdx.x] = m_lens_int[idx];
+                /*
+asm("ld.global.ca.v4.f32 {%0, %1, %2, %3}, [%4];"
+: "=f"(p1.x), "=f"(p1.y), "=f"(p1.z), "=f"(p1.w)
+: "l"(r));
+                */
+            }
+
+            const unsigned int lenses = min(DIM, m_lenses_size - i);
+            // Calculate with cached values
+            // p1 = m_lens_int[i];
+            /*
+            if ( blockIdx.x * blockDim.x + threadIdx.x == 0) {
+                    printf("\x1B[36mLenses: %d\x1B[0m\n", lenses);
+            }
+			*/
+            __syncthreads();
 #pragma unroll 32
-        for (i = 1; i < loop; i++) {
-            p1 = m_lenses[i].m_data;
-            movedtheta = theta;
-            movedtheta.x -= p0.z;
-            movedtheta.y -= p0.w;
-            len = (movedtheta.x * movedtheta.x) + (movedtheta.y * movedtheta.y);
-            len += p0.x;
-            len = (1 / len) * p0.y;
-            movedtheta.x *= len;
-            movedtheta.y *= len;
-            alpha.x += movedtheta.x;
-            alpha.y += movedtheta.y;
-            i++;
-            p0 = m_lenses[i].m_data;
-            movedtheta = theta;
-            movedtheta.x -= p1.z;
-            movedtheta.y -= p1.w;
-            len = (movedtheta.x * movedtheta.x) + (movedtheta.y * movedtheta.y);
-            len += p1.x;
-            len = (1 / len) * p1.y;
-            movedtheta.x *= len;
-            movedtheta.y *= len;
-            alpha.x += movedtheta.x;
-            alpha.y += movedtheta.y;
+            for (unsigned int x = 0; x < lenses; x++) {
+                t = theta;
+                const float4 p1 = cache[x];
+                t.x -= p1.z;
+                t.y -= p1.w;
+                float len = (t.x * t.x) + (t.y * t.y);
+                len += p1.x;
+                // len = (1 / len);
+				len = __fdividef(1.0, len);
+                len *= p1.y;
+                t.x *= len;
+                t.y *= len;
+                alpha.x += t.x;
+                alpha.y += t.y;
+            }
         }
-        i -= 1;
-        for (; i < m_lenses_size; i++) {
-            movedtheta = m_lenses[i].getAlpha(theta);
-            alpha.x += movedtheta.x;
-            alpha.y += movedtheta.y;
-        }
+#endif
         return alpha;
     }
 

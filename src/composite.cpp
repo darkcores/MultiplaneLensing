@@ -5,10 +5,6 @@
 #include <cstdio>
 #include <iostream>
 
-CompositeLens::CompositeLens(Plummer *lenses, const int lenses_size,
-                             const bool cuda)
-    : m_lenses(lenses), m_lenses_size(lenses_size), m_cuda(cuda) {}
-
 void CompositeLensBuilder::addLens(const Plummer &lens) {
     m_lenses.push_back(lens);
 }
