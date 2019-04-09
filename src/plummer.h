@@ -9,13 +9,14 @@
  */
 class Plummer {
   public:
-#ifdef __CUDACC__
-    float4 m_data;
-#else
     float m_angularwidth2;
     float m_4GM_f;
+
+#ifdef __CUDACC__
+    float2 m_position;
+#else
     Vector2D<float> m_position;
-    char __padding[12];
+    char __padding[4];
 #endif
     float m_4GM;
 
@@ -32,10 +33,10 @@ class Plummer {
             const double scale, const float2 position) {
         float _4GM =
             (4 * CONST_G * mass) / (SPEED_C * SPEED_C * Dd) * (scale * scale);
-        m_data.x = angularwidth * angularwidth;
-        m_data.y = _4GM;
-        m_data.z = position.x;
-        m_data.w = position.y;
+        m_angularwidth2 = angularwidth * angularwidth;
+        m_4GM_f = _4GM;
+        m_position.x = position.x;
+        m_position.y = position.y;
         m_4GM = _4GM;
         // printf("\x1B[34m4GM: %f (m %lf)\x1B[0m \n", m_4GM_f, mass);
     }
@@ -54,15 +55,14 @@ class Plummer {
 #endif
 
     __host__ __device__ void update(const float scalar) {
-#ifdef __CUDACC__
-        m_data.y = m_4GM * scalar;
-#else
         m_4GM_f = m_4GM * scalar;
-#endif
         // printf("\x1B[31m4GM: %f (* %f)\x1B[0m \n", m_4GM_f, scalar);
     }
 
 #ifdef __CUDACC__
+    __device__ float4 f4() const {
+        return float4{m_angularwidth2, m_4GM_f, m_position.x, m_position.y};
+    }
     /**
      * Get alpha vector (single precision, with scaling). For scaling
      * see setScale().
@@ -73,11 +73,11 @@ class Plummer {
     __host__ __device__ float2 getAlpha(const float2 &theta) const {
         // printf("Scale factor plummer %f\n", m_scale);
         float2 alpha = theta;
-        alpha.x -= m_data.z;
-        alpha.y -= m_data.w;
+        alpha.x -= m_position.x;
+        alpha.y -= m_position.y;
         float len = (alpha.x * alpha.x) + (alpha.y * alpha.y);
-        len += m_data.x;
-        len = (1 / len) * m_data.y;
+        len += m_angularwidth2;
+        len = (1 / len) * m_4GM_f;
         alpha.x *= len;
         alpha.y *= len;
         return alpha;

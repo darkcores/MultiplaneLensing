@@ -20,10 +20,13 @@ check_include_file(getopt.h HAVE_GETOPT_H)
 
 include(CheckLanguage)
 check_language(CUDA)
-set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=32")
+set(CMAKE_CUDA_FLAGS "-arch=sm_61 -gencode=arch=compute_61,code=sm_61 -dlink --maxrregcount=40")
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -lineinfo")
 endif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+if (VSC_BUILD) 
+  set(CMAKE_CUDA_FLAGS "-arch=sm_60 -gencode=arch=compute_60,code=sm_60 -dlink --maxrregcount=40")
+endif(VSC_BUILD)
 # -Xptxas -dlcm=cg
 # -ftz=true
 # -prec-div=false

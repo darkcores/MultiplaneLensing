@@ -6,7 +6,7 @@ __global__ void cmp_init_lenses(const int n, const Plummer *__restrict__ p,
                                 float4 *__restrict__ d) {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) {
-        d[i] = p[i].m_data;
+        d[i] = p[i].f4();
     }
 }
 

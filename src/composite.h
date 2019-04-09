@@ -31,7 +31,7 @@ class CompositeLens {
 #ifdef __CUDACC__
     __device__ void update(const float &factor, const int idx) {
         m_lenses[idx].update(factor);
-        m_lens_int[idx] = m_lenses[idx].m_data;
+        m_lens_int[idx] = m_lenses[idx].f4();
     }
 
     /**
