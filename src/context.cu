@@ -99,6 +99,9 @@ int MultiPlaneContext::calculatePositions(
         // Setup new masses
         m_multiplane->updateMassesCu(masses);
 
+        cudaStream_t stream1;
+        gpuErrchk(cudaStreamCreate(&stream1));
+
         // Calculate new betas
         size_t offset = 0;
         for (size_t i = 0; i < m_betas.size(); i++) {
@@ -115,11 +118,12 @@ int MultiPlaneContext::calculatePositions(
             // printf("Tcount: %lu\n", tcount);
             gpuErrchk(cudaMemcpyAsync(&m_betas[i][0], &m_beta[offset],
                                       sizeof(float2) * tcount,
-                                      cudaMemcpyDeviceToHost));
+                                      cudaMemcpyDeviceToHost, stream1));
             offset = m_theta_count[i];
         }
 
         cudaDeviceSynchronize();
+        gpuErrchk(cudaStreamDestroy(stream1));
 
         return 0;
     } catch (int e) {

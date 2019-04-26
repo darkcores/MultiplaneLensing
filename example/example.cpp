@@ -4,7 +4,7 @@
 #include <iostream>
 
 // Multiplane CUDA API header
-#include <context.h>
+#include <multiplanecuda/context.h>
 
 /**
  * Print help & options.

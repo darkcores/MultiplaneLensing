@@ -8,11 +8,32 @@ SET(COMMON_SRC
   util/cosmology.cu
 )
 
-add_library(lens_common
+add_library(lens_common SHARED
 	${COMMON_SRC}
 )
 
+set_target_properties(lens_common PROPERTIES
+  CUDA_SEPERABLE_COMPILATION ON)
+
+set_target_properties(lens_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
+#target_link_libraries(lens_common
+#  ${CUDA_LIBRARIES}
+#)
+
+set_target_properties(lens_common
+  PROPERTIES PUBLIC_HEADER
+  "context.h")
+
+INSTALL (
+  FILES util/cosmology.h util/vector2d.h
+  DESTINATION include/multiplanecuda/util
+)
+
 # set_property(TARGET lens_common PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+INSTALL(TARGETS lens_common 
+        LIBRARY DESTINATION lib
+        PUBLIC_HEADER DESTINATION include/multiplanecuda
+)
 
 # add_executable(lenstest
 #  main.cpp
