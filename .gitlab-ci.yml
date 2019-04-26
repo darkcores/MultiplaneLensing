@@ -20,7 +20,7 @@ tests:
 coverage:
     stage: coverage
     script:
-      - cmake -DCMAKE_BUILD_TYPE=DEBUG CMakeLists.txt -DCMAKE_BUILD_TYPE=debug -DCOVERAGE=1
+      - cmake CMakeLists.txt -DCMAKE_BUILD_TYPE=DEBUG -DCOVERAGE=1
       - make -j7
       - mkdir cov
       - kcov --include-path=./src cov/ bin/unit_tests
