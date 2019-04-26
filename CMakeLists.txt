@@ -45,4 +45,4 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 endif()
 
 subdirs(src)
-# subdirs(example)
+subdirs(example)
