@@ -50,8 +50,6 @@ class Multiplane {
      */
     int destroy();
 
-	void prepare(int numThetas);
-
     void updateMasses(const std::vector<std::vector<float>> &masses);
     void updateMassesCu(const std::vector<std::vector<float>> &masses);
 

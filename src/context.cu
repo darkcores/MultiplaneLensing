@@ -88,11 +88,6 @@ int MultiPlaneContext::setThetas(
         }
         size_t beta_size = sizeof(float2) * m_theta_len;
         gpuErrchk(cudaMalloc(&m_beta, beta_size));
-
-		// Prepare thetas
-		// printf("Prepare thetas\n");
-		int max = *std::max_element(m_theta_count.begin(), m_theta_count.end());
-		m_multiplane->prepare(max);
 		
         return 0;
     } catch (int e) {
@@ -117,8 +112,6 @@ int MultiPlaneContext::calculatePositions(
             // printf("Running kernel: %d, offset %d\n", i, offset);
             m_multiplane->traceThetas((float2 *)&m_theta[offset],
                                       (float2 *)&m_beta[offset], tcount, i);
-
-			cudaDeviceSynchronize();
 
             // Copy results back to host
             m_betas[i].resize(tcount);
