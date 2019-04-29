@@ -97,6 +97,29 @@ Multiplane *MultiplaneBuilder::getCuMultiPlanePtr() {
                           subl_size, true);
 }
 
+/*
+void Multiplane::alphaSetup() {
+    auto max =
+        std::max_element(m_dist_offsets.begin(), m_dist_offsets.end());
+        int n = m_sources_size;
+    float *atmp = nullptr;
+    gpuErrchk(cudaMalloc(&atmp, n * sizeof(float2) * *max));
+    m_alphas = atmp;
+}
+*/
+
+void Multiplane::prepare(int numThetas) {
+    if (m_alphas != nullptr)
+        gpuErrchk(cudaFree(m_alphas));
+
+    float *atmp = nullptr;
+    int numlenses =
+        *std::max_element(m_dist_offsets.begin(), m_dist_offsets.end());
+    // printf("Alloc %d bytes\n", numlenses * sizeof(float2) * numThetas);
+    gpuErrchk(cudaMalloc(&atmp, numThetas * sizeof(float2) * numlenses));
+    m_alphas = atmp;
+}
+
 int Multiplane::destroy() {
     // Destroy children
     if (m_cuda) {
@@ -123,6 +146,8 @@ int Multiplane::destroy() {
         gpuErrchk(cudaFree(m_sources));
         gpuErrchk(cudaFree(m_dist_lenses));
         gpuErrchk(cudaFree(m_dist_sources));
+        if (m_alphas)
+            gpuErrchk(cudaFree(m_alphas));
     } else {
         free(m_lenses);
         free(m_sources);
@@ -133,6 +158,7 @@ int Multiplane::destroy() {
     m_sources = nullptr;
     m_dist_lenses = nullptr;
     m_dist_sources = nullptr;
+    m_alphas = nullptr;
     return 0;
 }
 
@@ -194,11 +220,18 @@ int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const int n,
     }
 
     int numlenses = m_dist_offsets[plane];
-    thrust::device_vector<float2> alphas(numlenses * n);
-    float2 *ptr = thrust::raw_pointer_cast(&alphas[0]);
-    mp_traceThetaGlobal<<<(n / 128) + 1, 128>>>(
-        n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
-        offset, m_lenses, ptr);
+    if (m_alphas == nullptr) {
+        thrust::device_vector<float2> alphas(numlenses * n);
+        float2 *ptr = thrust::raw_pointer_cast(&alphas[0]);
+        mp_traceThetaGlobal<<<(n / 128) + 1, 128>>>(
+            n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
+            offset, m_lenses, ptr);
+    } else {
+        // gpuErrchk(cudaMemset(m_alphas, 0, n * numlenses * sizeof(float2)));
+        mp_traceThetaGlobal<<<(n / 128) + 1, 128>>>(
+            n, thetas, betas, plane, m_dist_lenses, m_dist_sources, numlenses,
+            offset, m_lenses, (float2 *)m_alphas);
+    }
     gpuErrchk(cudaGetLastError());
 
     return 0;

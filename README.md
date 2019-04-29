@@ -48,7 +48,7 @@ DEBUG configuration.
 	
 # Installation
 
-For Arch Linux a PKGBUILD can be found [here]()
+For Arch Linux a PKGBUILD can be found [here](https://gist.github.com/darkcores/d0ee2b9d83c64d2a85aec3773a9ccced)
 
 By default it installs the library to `/usr/local/` on linux, on
 archlinux this doesn't work out of the box (`/usr/local/lib` is not in

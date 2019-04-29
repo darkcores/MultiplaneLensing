@@ -3,7 +3,7 @@ project (LensTestCuda LANGUAGES CUDA CXX C)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 set(default_build_type "RELEASE")
 
-SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pipe ")
+SET(GCC_FLAGS "-O3 -fPIC -std=c++14 -Wall -Wextra -pipe ")
 if (COVERAGE)
   SET(GCC_FLAGS "-std=c++14 -O0 -Wall -Wextra")
 endif(COVERAGE)

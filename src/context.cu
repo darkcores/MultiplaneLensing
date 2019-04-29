@@ -1,6 +1,7 @@
 #include "context.h"
 
 #include "multiplane.h"
+#include <algorithm>
 
 MultiPlaneContext::MultiPlaneContext(const double angularUnit,
                                      const Cosmology cosmology)
@@ -87,6 +88,12 @@ int MultiPlaneContext::setThetas(
         }
         size_t beta_size = sizeof(float2) * m_theta_len;
         gpuErrchk(cudaMalloc(&m_beta, beta_size));
+
+		// Prepare thetas
+		// printf("Prepare thetas\n");
+		int max = *std::max_element(m_theta_count.begin(), m_theta_count.end());
+		m_multiplane->prepare(max);
+		
         return 0;
     } catch (int e) {
         return e;
@@ -99,8 +106,8 @@ int MultiPlaneContext::calculatePositions(
         // Setup new masses
         m_multiplane->updateMassesCu(masses);
 
-        cudaStream_t stream1;
-        gpuErrchk(cudaStreamCreate(&stream1));
+        // cudaStream_t stream1;
+        // gpuErrchk(cudaStreamCreate(&stream1));
 
         // Calculate new betas
         size_t offset = 0;
@@ -111,6 +118,8 @@ int MultiPlaneContext::calculatePositions(
             m_multiplane->traceThetas((float2 *)&m_theta[offset],
                                       (float2 *)&m_beta[offset], tcount, i);
 
+			cudaDeviceSynchronize();
+
             // Copy results back to host
             m_betas[i].resize(tcount);
             // printf("Betas (%d) size: %lu\n", i, m_betas[i].size());
@@ -118,12 +127,12 @@ int MultiPlaneContext::calculatePositions(
             // printf("Tcount: %lu\n", tcount);
             gpuErrchk(cudaMemcpyAsync(&m_betas[i][0], &m_beta[offset],
                                       sizeof(float2) * tcount,
-                                      cudaMemcpyDeviceToHost, stream1));
+                                      cudaMemcpyDeviceToHost/*, stream1*/));
             offset = m_theta_count[i];
         }
 
         cudaDeviceSynchronize();
-        gpuErrchk(cudaStreamDestroy(stream1));
+        // gpuErrchk(cudaStreamDestroy(stream1));
 
         return 0;
     } catch (int e) {

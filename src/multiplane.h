@@ -12,10 +12,13 @@ class Multiplane {
     float *__restrict__ m_sources;
     float *__restrict__ m_dist_lenses;
     float *__restrict__ m_dist_sources;
+    float *__restrict__ m_alphas = nullptr;
     std::vector<int> m_dist_offsets;
     std::vector<int> m_sublenses_size;
     const int m_lenses_size, m_sources_size;
     const bool m_cuda;
+
+    // void alphaSetup();
 
   public:
     /**
@@ -33,13 +36,21 @@ class Multiplane {
         m_dist_lenses = dist_lenses;
         m_dist_sources = dist_sources;
         m_dist_offsets = dist_offsets;
-		m_sublenses_size = subl_size;
+        m_sublenses_size = subl_size;
+
+		/*
+        if (m_cuda) {
+            alphaSetup();
+        }
+		*/
     }
 
     /**
      * Cleanup memory allocations.
      */
     int destroy();
+
+	void prepare(int numThetas);
 
     void updateMasses(const std::vector<std::vector<float>> &masses);
     void updateMassesCu(const std::vector<std::vector<float>> &masses);
