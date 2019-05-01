@@ -57,11 +57,11 @@ class Multiplane {
  * Trace theta vectors
  */
 #ifdef __CUDACC__
-    int traceThetas(const float2 *thetas, float2 *betas, const int n,
+    int traceThetas(const float2 *thetas, float2 *betas, const size_t n,
                     const int plane) const;
 #else
     int traceThetas(const Vector2D<float> *thetas, Vector2D<float> *betas,
-                    const int n, const int plane) const;
+                    const size_t n, const int plane) const;
 #endif
 };
 

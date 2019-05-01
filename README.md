@@ -19,10 +19,17 @@ Build requirements:
 
 ## Default
 
+By default this library will be build for sm `sm_30`. If you have a
+newer card, you might get better results specifying a newer arch.
+
     cmake CMakeLists.txt
     make
 	
 ### GPU Arch optimise
+
+To specify another arch, set `SM_VER` for cmake
+
+	cmake CMakeLists.txt -DSM_VER=sm_61
 
 To build for usage on the [VSC](https://www.vscentrum.be/) (Tesla
 p100) use:

@@ -88,7 +88,7 @@ Multiplane MultiplaneBuilder::getMultiPlane() {
 }
 
 int Multiplane::traceThetas(const Vector2D<float> *thetas,
-                            Vector2D<float> *betas, const int n,
+                            Vector2D<float> *betas, const size_t n,
                             const int plane) const {
     int offset = 0;
     for (int i = 0; i < plane; i++) {
@@ -104,7 +104,7 @@ int Multiplane::traceThetas(const Vector2D<float> *thetas,
     Vector2D<float> last_theta;
 
     // For each theta
-    for (int z = 0; z < n; z++) {
+    for (size_t z = 0; z < n; z++) {
         int l = 0;
 
         // printf("Lenses: %d\n", numlenses);
