@@ -5,6 +5,12 @@
 #include "util/cosmology.h"
 // Same for points/Vector2D
 #include "util/vector2d.h"
+
+// Older GCC versions don't work otherwise
+#ifndef size_t
+typedef std::size_t size_t;
+#endif
+
 // some template definitions
 class Multiplane;
 class CompositeLensBuilder;

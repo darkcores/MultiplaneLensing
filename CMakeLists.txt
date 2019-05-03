@@ -42,6 +42,7 @@ endif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 # set(CMAKE_CUDA_FLAGS "--default-stream per-thread -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_60,code=sm_60 -Xcompiler -fopenmp")
 
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+include_directories("./src")
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   find_package(GTest)
