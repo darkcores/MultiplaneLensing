@@ -3,7 +3,7 @@ project (LensTestCuda LANGUAGES CUDA CXX C)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 set(default_build_type "RELEASE")
 
-SET(GCC_FLAGS "-O3 -fPIC -std=c++14 -Wall -Wextra -pipe ")
+SET(GCC_FLAGS "-O3 -std=c++14 -Wall -Wextra -pipe")
 if (COVERAGE)
   SET(GCC_FLAGS "-std=c++14 -O0 -Wall -Wextra")
 endif(COVERAGE)
@@ -17,6 +17,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(CheckIncludeFile)
 check_include_file(getopt.h HAVE_GETOPT_H)
+
+include(FindOpenMP)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
 include(CheckLanguage)
 check_language(CUDA)

@@ -2,6 +2,7 @@
 
 #include "multiplane.h"
 #include <algorithm>
+#include <numeric>
 
 MultiPlaneContext::MultiPlaneContext(const double angularUnit,
                                      const Cosmology cosmology)
@@ -66,6 +67,7 @@ int MultiPlaneContext::setThetas(
     try {
         m_theta_len = 0;
         // Resize list of betas
+		std::cout << "Thetas size " << thetas.size() << std::endl;
         m_betas.resize(thetas.size());
 
         for (size_t i = 0; i < thetas.size(); i++) {
@@ -88,7 +90,7 @@ int MultiPlaneContext::setThetas(
         }
         size_t beta_size = sizeof(float2) * m_theta_len;
         gpuErrchk(cudaMalloc(&m_beta, beta_size));
-		
+
         return 0;
     } catch (int e) {
         return e;
@@ -120,12 +122,71 @@ int MultiPlaneContext::calculatePositions(
             // printf("Tcount: %lu\n", tcount);
             gpuErrchk(cudaMemcpyAsync(&m_betas[i][0], &m_beta[offset],
                                       sizeof(float2) * tcount,
-                                      cudaMemcpyDeviceToHost/*, stream1*/));
+                                      cudaMemcpyDeviceToHost /*, stream1*/));
             offset = m_theta_count[i];
         }
 
         cudaDeviceSynchronize();
         // gpuErrchk(cudaStreamDestroy(stream1));
+
+        return 0;
+    } catch (int e) {
+        return e;
+    }
+}
+
+int MultiPlaneContext::calculatePositionsBenchmark(
+    const std::vector<std::vector<float>> &masses, float &millis, int nruns) {
+    try {
+        std::vector<float> m(nruns);
+
+        for (int x = 0; x < nruns; x++) {
+            cudaEvent_t start, stop;
+            cudaEventCreate(&start);
+            cudaEventCreate(&stop);
+            // Setup new masses
+            m_multiplane->updateMassesCu(masses);
+
+            // Calculate new betas
+            cudaEventRecord(start);
+            size_t offset = 0;
+			std::cout << "Source planes " << m_betas.size() << std::endl;
+            for (size_t i = 0; i < m_betas.size(); i++) {
+                size_t tcount = m_theta_count[i] - offset;
+                m_multiplane->traceThetas((float2 *)&m_theta[offset],
+                                          (float2 *)&m_beta[offset], tcount, i);
+
+                // Copy results back to host
+                m_betas[i].resize(tcount);
+                std::cout << "Run " << x << "; Sizes: " << tcount << "; "
+                          << m_betas[i].size() << "; " << m_theta_count[0]
+                          << std::endl;
+                gpuErrchk(cudaMemcpyAsync(
+                    &m_betas[i][0], &m_beta[offset], sizeof(float2) * tcount,
+                    cudaMemcpyDeviceToHost /*, stream1*/));
+                offset = m_theta_count[i];
+            }
+            cudaEventRecord(stop);
+
+            cudaDeviceSynchronize();
+            cudaEventSynchronize(stop);
+
+            cudaEventElapsedTime(&m[x], start, stop);
+        }
+
+        float avg = std::accumulate(m.begin(), m.end(), 0) / (float)m.size();
+        millis = avg;
+
+        float minv = *std::min_element(m.begin(), m.end());
+        float maxv = *std::max_element(m.begin(), m.end());
+        float med = m[m.size() / 2];
+
+        float sq_sum = std::inner_product(m.begin(), m.end(), m.begin(), 0.0);
+        float stdev = std::sqrt(sq_sum / m.size() - avg * avg);
+
+        printf(
+            "Avg time: %.2f ms (min: %.2f; med: %.2f; max: %.2f, std: %.2f)\n",
+            avg, minv, med, maxv, stdev);
 
         return 0;
     } catch (int e) {

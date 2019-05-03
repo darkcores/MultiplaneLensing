@@ -92,21 +92,8 @@ asm("ld.global.ca.v4.f32 {%0, %1, %2, %3}, [%4];"
         return alpha;
     }
 
-    __device__ float2 getAlphaStrided(const float2 &theta, const int s) const {
-        float2 alpha, movedtheta;
-        alpha.x = 0;
-        alpha.y = 0;
-
-#pragma unroll 16
-        for (int i = s; i < m_lenses_size; i += 2) {
-            movedtheta = m_lenses[i].getAlpha(theta);
-            alpha.x += movedtheta.x;
-            alpha.y += movedtheta.y;
-        }
-        return alpha;
-    }
 #else
-    __host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
+    inline __host__ __device__ Vector2D<float> getAlpha(const Vector2D<float> &theta) {
         Vector2D<float> alpha(0, 0), movedtheta;
         for (int i = 0; i < m_lenses_size; i++) {
             movedtheta = m_lenses[i].getAlpha(theta);

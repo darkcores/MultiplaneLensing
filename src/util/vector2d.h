@@ -81,9 +81,7 @@ template <typename T> class Vector2D {
         // return *this;
     }
 
-	inline float2 f2() const {
-		return float2{.x = m_x, .y = m_y};
-	}
+    inline float2 f2() const { return float2{.x = m_x, .y = m_y}; }
 #endif
     __host__ __device__ inline void rdiff(const Vector2D<T> &diff) {
         m_x = diff.x() - m_x;

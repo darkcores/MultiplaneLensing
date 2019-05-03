@@ -5,6 +5,7 @@ SET(COMMON_SRC
   multiplane.cu
   multiplane.cpp
   context.cu
+  cpu_context.cpp
   util/cosmology.cu
 )
 
@@ -16,13 +17,10 @@ set_target_properties(lens_common PROPERTIES
   CUDA_SEPERABLE_COMPILATION ON)
 
 set_target_properties(lens_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
-#target_link_libraries(lens_common
-#  ${CUDA_LIBRARIES}
-#)
 
 set_target_properties(lens_common
   PROPERTIES PUBLIC_HEADER
-  "context.h")
+  "context.h;cpu_context.h")
 
 INSTALL (
   FILES util/cosmology.h util/vector2d.h

@@ -89,17 +89,17 @@ void parse_args(int argc, char *argv[]) {
 void write_file(MultiPlaneContext *ctx) {
     printf("Writing %s\n", outfile);
 
-	// Writing binary is a lot faster but not readable.  But this is
-	// just an example, so it's not really important.
+    // Writing binary is a lot faster but not readable.  But this is
+    // just an example, so it's not really important.
     std::ofstream out(outfile, std::ios::binary);
     out.precision(6);
 
     for (size_t i = 0; i < source_z.size(); i++) {
-		size_t s = thetas.size();
-		out.write((char *)&s, sizeof(size_t));
+        size_t s = thetas.size();
+        out.write((char *)&s, sizeof(size_t));
         auto points = ctx->getSourcePositions(0);
         for (auto &p : points) {
-			out.write((char *)&p, sizeof(Vector2D<float>));
+            out.write((char *)&p, sizeof(Vector2D<float>));
         }
     }
 }
@@ -146,10 +146,11 @@ void load_file() {
     }
 
     // Read thetas
-    int numthetas = 0;
+    long numthetas = 0;
     in >> numthetas;
     std::cout << "Loading thetas: " << numthetas << std::endl;
-    for (int i = 0; i < numthetas; i++) {
+    thetas.reserve(numthetas);
+    for (long i = 0; i < numthetas; i++) {
         float x, y;
         in >> x >> y;
         thetas.push_back(Vector2D<float>(x, y));
@@ -181,35 +182,39 @@ int main(int argc, char *argv[]) {
     const Cosmology cosm(0.7, 0.3, 0.0, 0.7);
     MultiPlaneContext ctx(angularUnit, cosm);
 
-	std::cout << "Lens redshifts: ";
-	for (auto val : lens_z) {
-		std::cout << val << "; ";
-	}
-	std::cout << std::endl;
-	std::cout << "Source redshifts: ";
-	for (auto &val : source_z) {
-		val += 1;
-		std::cout << val << "; ";
-	}
-	std::cout << std::endl;
+    std::cout << "Lens redshifts: ";
+    for (auto val : lens_z) {
+        std::cout << val << "; ";
+    }
+    std::cout << std::endl;
+    std::cout << "Source redshifts: ";
+    for (auto &val : source_z) {
+        // val += 1;
+        std::cout << val << "; ";
+    }
+    std::cout << std::endl;
 
-	error = ctx.init(lens_z, lens_params, source_z);
+    error = ctx.init(lens_z, lens_params, source_z);
     if (error) {
         return error;
-	}
+    }
 
-	std::vector<std::vector<Vector2D<float>>> th;
-	th.push_back(thetas);
-	th.push_back(thetas);
-	th.push_back(thetas);
+    std::vector<std::vector<Vector2D<float>>> th;
+    for (size_t i = 0; i < source_z.size(); i++) {
+        th.push_back(thetas);
+    }
     error = ctx.setThetas(th);
     if (error)
         return error;
 
     // Calculate betas
-    error = ctx.calculatePositions(masses);
-    if (error)
+    float millis = 0;
+    error = ctx.calculatePositionsBenchmark(masses, millis);
+    if (error) {
         return error;
+    }
+
+    std::cout << "Calculated in " << millis << " milliseconds" << std::endl;
 
     write_file(&ctx);
 

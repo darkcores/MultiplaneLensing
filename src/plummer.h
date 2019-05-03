@@ -90,13 +90,14 @@ class Plummer {
      * @param theta Theta vector.
      * @returns Alpha vector.
      */
-    __host__ __device__ Vector2D<float>
+    inline __host__ __device__ Vector2D<float>
     getAlpha(const Vector2D<float> &theta) const {
         // printf("Scale factor plummer %f\n", m_scale);
         auto alpha = theta;
         alpha -= m_position;
-        alpha /= (alpha.lengthSq() + m_angularwidth2);
-        alpha *= m_4GM_f;
+		float len = alpha.lengthSq() + m_angularwidth2;
+		len = (1 / len) * m_4GM_f;
+        alpha *= len;
         return alpha;
     }
 #endif

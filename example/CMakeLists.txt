@@ -12,6 +12,14 @@ add_executable(example
   example.cpp
 )
 
+add_executable(example_cpu
+  example_cpu.cpp
+)
+
 target_link_libraries(example
+  PRIVATE lens_common
+)
+
+target_link_libraries(example_cpu
   PRIVATE lens_common
 )

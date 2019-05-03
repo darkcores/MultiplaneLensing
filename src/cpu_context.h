@@ -1,22 +1,10 @@
 #pragma once
 
-#include <vector>
-// Cosmology calculations are needed anyways
-#include "util/cosmology.h"
-// Same for points/Vector2D
-#include "util/vector2d.h"
-// some template definitions
-class Multiplane;
-class CompositeLensBuilder;
+#include "context.h"
 
 /**
  * Initial parameters for each plummer lens.
  */
-struct PlummerParams {
-    Vector2D<float> position;
-    float angularwidth;
-    double mass;
-};
 
 /**
  * Context for multiplane plummer calculations.
@@ -24,7 +12,7 @@ struct PlummerParams {
  * For sample use cases see api_tests.cu in tests/ or example.cpp in
  * example/ for a complete example program.
  */
-class MultiPlaneContext {
+class CPUMultiPlaneContext {
   private:
     const double m_angularUnit;
     const Cosmology m_cosmology;
@@ -46,8 +34,8 @@ class MultiPlaneContext {
      * eg. ANGLE_ARCSEC.
      * @param cosmology What parameters are used for cosmology.
      */
-    MultiPlaneContext(const double angularUnit, const Cosmology cosmology);
-    ~MultiPlaneContext();
+    CPUMultiPlaneContext(const double angularUnit, const Cosmology cosmology);
+    ~CPUMultiPlaneContext();
 
     /**
      * Initialize lenses and source planes.
@@ -71,8 +59,6 @@ class MultiPlaneContext {
     /**
      * Calculation beta positions with lens masses.
      */
-    int calculatePositions(const std::vector<std::vector<float>> &masses);
-
     int
     calculatePositionsBenchmark(const std::vector<std::vector<float>> &masses,
                                 float &millis, int nruns = 7);

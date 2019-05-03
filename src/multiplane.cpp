@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <chrono>
 
 void MultiplaneBuilder::addPlane(CompositeLensBuilder &lensbuilder) {
     m_builders.push_back(lensbuilder);
@@ -87,6 +88,52 @@ Multiplane MultiplaneBuilder::getMultiPlane() {
                       dist_lens_ptr, dist_src_ptr, m_dist_offsets, subl_size);
 }
 
+Multiplane *MultiplaneBuilder::getMultiPlanePtr() {
+    std::vector<CompositeLens> data;
+	std::vector<int> subl_size;
+
+    // Get final lenses from builders
+    for (size_t i = 0; i < m_builders.size(); i++) {
+		subl_size.push_back(m_builders[i].length());
+        auto lens = m_builders[i].getLens();
+        data.push_back(lens);
+    }
+
+    if (data.size() == 0 || m_source_z.size() == 0) {
+        std::cerr << "No lens and/or source planes given " << data.size() << "-"
+                  << m_source_z.size() << std::endl;
+        throw(-1);
+    }
+
+    prepare();
+
+    CompositeLens *lens_ptr;
+    float *src_ptr, *dist_lens_ptr, *dist_src_ptr;
+
+    size_t lens_size = sizeof(CompositeLens) * data.size();
+    lens_ptr = (CompositeLens *)malloc(lens_size);
+    cpuErrchk(lens_ptr);
+    std::memcpy((void *)lens_ptr, &data[0], lens_size);
+
+    size_t src_size = sizeof(float) * m_source_z.size();
+    src_ptr = (float *)malloc(src_size);
+    cpuErrchk(src_ptr);
+    std::memcpy((void *)src_ptr, &m_source_z[0], src_size);
+
+    size_t dist_lens_size = sizeof(float) * m_dists_lenses.size();
+    dist_lens_ptr = (float *)malloc(dist_lens_size);
+    cpuErrchk(dist_lens_ptr);
+    std::memcpy((void *)dist_lens_ptr, &m_dists_lenses[0], dist_lens_size);
+
+    size_t dist_src_size = sizeof(float) * m_dists_sources.size();
+    dist_src_ptr = (float *)malloc(dist_src_size);
+    cpuErrchk(dist_src_ptr);
+    std::memcpy((void *)dist_src_ptr, &m_dists_sources[0], dist_src_size);
+
+    return new Multiplane(lens_ptr, data.size(), src_ptr, m_source_z.size(),
+                      dist_lens_ptr, dist_src_ptr, m_dist_offsets, subl_size);
+}
+
 int Multiplane::traceThetas(const Vector2D<float> *thetas,
                             Vector2D<float> *betas, const size_t n,
                             const int plane) const {
@@ -94,20 +141,17 @@ int Multiplane::traceThetas(const Vector2D<float> *thetas,
     for (int i = 0; i < plane; i++) {
         int s = m_dist_offsets[i];
         offset += s;
-        // offset += (s * (s + 1) / 2);
     }
 
     int numlenses = m_dist_offsets[plane];
-    std::vector<Vector2D<float>> alphas;
-    alphas.resize(numlenses);
-    // tmp_thetas.resize(numlenses);
+    std::vector<Vector2D<float>> alphas(numlenses);
     Vector2D<float> last_theta;
 
+	auto start = std::chrono::system_clock::now();
     // For each theta
+	// #pragma omp parallel for firstprivate(alphas) firstprivate(last_theta)
     for (size_t z = 0; z < n; z++) {
         int l = 0;
-
-        // printf("Lenses: %d\n", numlenses);
 
         // lenses
         for (int i = 0; i <= numlenses; i++) {
@@ -116,7 +160,6 @@ int Multiplane::traceThetas(const Vector2D<float> *thetas,
                 if (j == (i - 1)) {
                     // Alpha not yet calculated
                     alphas[j] = m_lenses[j].getAlpha(last_theta);
-                    // printf("Alpha %d\n", j);
                 }
                 t -= alphas[j] * m_dist_lenses[l];
                 l++;
@@ -133,6 +176,11 @@ int Multiplane::traceThetas(const Vector2D<float> *thetas,
         }
         betas[z] = t;
     }
+	auto end = std::chrono::system_clock::now();
+	
+	std::chrono::duration<double> elapsed_seconds = end - start;
+	elapsed_seconds *= 1000;
+	std::cout << "Thetas only: " << elapsed_seconds.count() << std::endl;
     return 0;
 }
 

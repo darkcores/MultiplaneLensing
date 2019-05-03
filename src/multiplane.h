@@ -107,6 +107,7 @@ class MultiplaneBuilder {
      * Get Multiplane (CPU).
      */
     Multiplane getMultiPlane();
+	Multiplane *getMultiPlanePtr();
     /**
      * Get Multiplane (GPU/CUDA).
      */

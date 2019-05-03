@@ -22,3 +22,4 @@ compile_commands.json
 profile.nsight*
 ltximg/
 *.pdf
+install_manifest.txt
