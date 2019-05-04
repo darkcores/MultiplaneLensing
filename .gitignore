@@ -23,3 +23,5 @@ profile.nsight*
 ltximg/
 *.pdf
 install_manifest.txt
+out*
+input_data.txt

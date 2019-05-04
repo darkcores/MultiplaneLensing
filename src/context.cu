@@ -67,7 +67,7 @@ int MultiPlaneContext::setThetas(
     try {
         m_theta_len = 0;
         // Resize list of betas
-		std::cout << "Thetas size " << thetas.size() << std::endl;
+		// std::cout << "Thetas size " << thetas.size() << std::endl;
         m_betas.resize(thetas.size());
 
         for (size_t i = 0; i < thetas.size(); i++) {
@@ -150,7 +150,7 @@ int MultiPlaneContext::calculatePositionsBenchmark(
             // Calculate new betas
             cudaEventRecord(start);
             size_t offset = 0;
-			std::cout << "Source planes " << m_betas.size() << std::endl;
+			// std::cout << "Source planes " << m_betas.size() << std::endl;
             for (size_t i = 0; i < m_betas.size(); i++) {
                 size_t tcount = m_theta_count[i] - offset;
                 m_multiplane->traceThetas((float2 *)&m_theta[offset],
@@ -158,9 +158,11 @@ int MultiPlaneContext::calculatePositionsBenchmark(
 
                 // Copy results back to host
                 m_betas[i].resize(tcount);
+				/*
                 std::cout << "Run " << x << "; Sizes: " << tcount << "; "
                           << m_betas[i].size() << "; " << m_theta_count[0]
                           << std::endl;
+				*/
                 gpuErrchk(cudaMemcpyAsync(
                     &m_betas[i][0], &m_beta[offset], sizeof(float2) * tcount,
                     cudaMemcpyDeviceToHost /*, stream1*/));
@@ -174,7 +176,16 @@ int MultiPlaneContext::calculatePositionsBenchmark(
             cudaEventElapsedTime(&m[x], start, stop);
         }
 
-        float avg = std::accumulate(m.begin(), m.end(), 0) / (float)m.size();
+		std::sort(m.begin(), m.end());
+
+		printf("Times measured: [");
+		for (auto x : m) {
+			printf("%.2f, ", x);
+		}
+		printf("\n");
+		
+        float avg = std::accumulate(m.begin(), m.end(), 0.0);
+		avg /= m.size();
         millis = avg;
 
         float minv = *std::min_element(m.begin(), m.end());

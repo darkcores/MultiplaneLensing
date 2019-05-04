@@ -25,7 +25,7 @@ newer card, you might get better results specifying a newer arch.
     cmake CMakeLists.txt
     make
 	
-### GPU Arch optimise
+### GPU Arch optimize
 
 To specify another arch, set `SM_VER` for cmake
 

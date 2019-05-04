@@ -148,7 +148,7 @@ __global__ void mp_traceThetaGlobal(const long n,
                                     const CompositeLens *__restrict__ lenses) {
     const long z = min((long)blockIdx.x * blockDim.x + threadIdx.x, n - 1);
 
-    const int MAX_PLANES = 4096;
+    const int MAX_PLANES = 128;
     float2 alphas[MAX_PLANES];
 
     float2 last_theta;
