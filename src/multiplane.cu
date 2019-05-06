@@ -162,8 +162,8 @@ __global__ void mp_traceThetaGlobal(const long n,
         for (int j = 0; j < i; j++) {
             const float2 a = alphas[j];
             const float dist = dist_lenses[l];
-            t.x -= a.x * dist;
-            t.y -= a.y * dist;
+            t.x = t.x - a.x * dist;
+            t.y = t.y - a.y * dist;
             l++;
         }
         last_theta = t;
@@ -174,8 +174,8 @@ __global__ void mp_traceThetaGlobal(const long n,
     for (int i = 0; i < numlenses; i++) {
         const float2 a = alphas[i];
         const float dist = dist_sources[l];
-        t.x -= a.x * dist;
-        t.y -= a.y * dist;
+		t.x = t.x - a.x * dist;
+		t.y = t.y - a.y * dist;
         l++;
     }
     betas[z] = t;
@@ -198,7 +198,8 @@ int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const size_t n,
     return 0;
 }
 
-__global__ void mp_updateMasses(const size_t n, const float *__restrict__ masses,
+__global__ void mp_updateMasses(const size_t n,
+                                const float *__restrict__ masses,
                                 const int lens,
                                 CompositeLens *__restrict__ lenses) {
     const size_t i = blockIdx.x * blockDim.x + threadIdx.x;

@@ -140,7 +140,8 @@ int MultiPlaneContext::calculatePositionsBenchmark(
     try {
         std::vector<float> m(nruns);
 
-        for (int x = 0; x < nruns; x++) {
+		// First few rounds to warm up the card
+        for (int x = -2; x < nruns; x++) {
             cudaEvent_t start, stop;
             cudaEventCreate(&start);
             cudaEventCreate(&stop);
@@ -173,7 +174,9 @@ int MultiPlaneContext::calculatePositionsBenchmark(
             cudaDeviceSynchronize();
             cudaEventSynchronize(stop);
 
-            cudaEventElapsedTime(&m[x], start, stop);
+			if (x >= 0) {
+				cudaEventElapsedTime(&m[x], start, stop);
+			}
         }
 
 		std::sort(m.begin(), m.end());
