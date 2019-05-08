@@ -5,7 +5,6 @@ SET(COMMON_SRC
   multiplane.cu
   multiplane.cpp
   context.cu
-  cpu_context.cpp
   util/cosmology.cu
 )
 
