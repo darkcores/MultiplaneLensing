@@ -58,7 +58,7 @@ class Multiplane {
  */
 #ifdef __CUDACC__
     int traceThetas(const float2 *thetas, float2 *betas, const size_t n,
-                    const int plane) const;
+                    const int plane, const float *mass_sheet = nullptr) const;
 #else
     int traceThetas(const Vector2D<float> *thetas, Vector2D<float> *betas,
                     const size_t n, const int plane) const;

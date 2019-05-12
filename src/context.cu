@@ -3,6 +3,7 @@
 #include "multiplane.h"
 #include <algorithm>
 #include <numeric>
+#include <thrust/device_vector.h>
 
 MultiPlaneContext::MultiPlaneContext(const double angularUnit,
                                      const Cosmology cosmology)
@@ -26,8 +27,8 @@ MultiPlaneContext::~MultiPlaneContext() {
 CompositeLensBuilder
 MultiPlaneContext::buildLens(const float redshift,
                              const std::vector<PlummerParams> &params) {
-    CompositeLensBuilder builder(redshift);
     double Dd = m_cosmology.angularDiameterDistance(redshift);
+    CompositeLensBuilder builder(redshift, Dd);
     for (auto &param : params) {
         float2 position = param.position.f2();
         Plummer plum(Dd, param.mass, param.angularwidth, 1 / m_angularUnit,
@@ -67,7 +68,7 @@ int MultiPlaneContext::setThetas(
     try {
         m_theta_len = 0;
         // Resize list of betas
-		// std::cout << "Thetas size " << thetas.size() << std::endl;
+        // std::cout << "Thetas size " << thetas.size() << std::endl;
         m_betas.resize(thetas.size());
 
         for (size_t i = 0; i < thetas.size(); i++) {
@@ -98,13 +99,19 @@ int MultiPlaneContext::setThetas(
 }
 
 int MultiPlaneContext::calculatePositions(
-    const std::vector<std::vector<float>> &masses) {
+    const std::vector<std::vector<float>> &masses,
+    const std::vector<float> &mass_sheet) {
     try {
         // Setup new masses
         m_multiplane->updateMassesCu(masses);
 
         // cudaStream_t stream1;
         // gpuErrchk(cudaStreamCreate(&stream1));
+		thrust::device_vector<float> dev_mass_sheet(mass_sheet);
+        float *dev_mass_sheet_ptr = nullptr;
+        if (mass_sheet.size() > 0) {
+            dev_mass_sheet_ptr = thrust::raw_pointer_cast(&dev_mass_sheet[0]);
+        }
 
         // Calculate new betas
         size_t offset = 0;
@@ -113,7 +120,8 @@ int MultiPlaneContext::calculatePositions(
 
             // printf("Running kernel: %d, offset %d\n", i, offset);
             m_multiplane->traceThetas((float2 *)&m_theta[offset],
-                                      (float2 *)&m_beta[offset], tcount, i);
+                                      (float2 *)&m_beta[offset], tcount, i,
+                                      dev_mass_sheet_ptr);
 
             // Copy results back to host
             m_betas[i].resize(tcount);
@@ -140,7 +148,7 @@ int MultiPlaneContext::calculatePositionsBenchmark(
     try {
         std::vector<float> m(nruns);
 
-		// First few rounds to warm up the card
+        // First few rounds to warm up the card
         for (int x = -2; x < nruns; x++) {
             cudaEvent_t start, stop;
             cudaEventCreate(&start);
@@ -151,7 +159,7 @@ int MultiPlaneContext::calculatePositionsBenchmark(
             // Calculate new betas
             cudaEventRecord(start);
             size_t offset = 0;
-			// std::cout << "Source planes " << m_betas.size() << std::endl;
+            // std::cout << "Source planes " << m_betas.size() << std::endl;
             for (size_t i = 0; i < m_betas.size(); i++) {
                 size_t tcount = m_theta_count[i] - offset;
                 m_multiplane->traceThetas((float2 *)&m_theta[offset],
@@ -159,11 +167,11 @@ int MultiPlaneContext::calculatePositionsBenchmark(
 
                 // Copy results back to host
                 m_betas[i].resize(tcount);
-				/*
-                std::cout << "Run " << x << "; Sizes: " << tcount << "; "
-                          << m_betas[i].size() << "; " << m_theta_count[0]
-                          << std::endl;
-				*/
+                /*
+std::cout << "Run " << x << "; Sizes: " << tcount << "; "
+          << m_betas[i].size() << "; " << m_theta_count[0]
+          << std::endl;
+                */
                 gpuErrchk(cudaMemcpyAsync(
                     &m_betas[i][0], &m_beta[offset], sizeof(float2) * tcount,
                     cudaMemcpyDeviceToHost /*, stream1*/));
@@ -174,21 +182,21 @@ int MultiPlaneContext::calculatePositionsBenchmark(
             cudaDeviceSynchronize();
             cudaEventSynchronize(stop);
 
-			if (x >= 0) {
-				cudaEventElapsedTime(&m[x], start, stop);
-			}
+            if (x >= 0) {
+                cudaEventElapsedTime(&m[x], start, stop);
+            }
         }
 
-		std::sort(m.begin(), m.end());
+        std::sort(m.begin(), m.end());
 
-		printf("Times measured: [");
-		for (auto x : m) {
-			printf("%.2f, ", x);
-		}
-		printf("\n");
-		
+        printf("Times measured: [");
+        for (auto x : m) {
+            printf("%.2f, ", x);
+        }
+        printf("\n");
+
         float avg = std::accumulate(m.begin(), m.end(), 0.0);
-		avg /= m.size();
+        avg /= m.size();
         millis = avg;
 
         float minv = *std::min_element(m.begin(), m.end());

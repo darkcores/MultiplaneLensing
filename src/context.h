@@ -72,12 +72,15 @@ class MultiPlaneContext {
      *
      * @param thetas List of thetas per source plane.
      */
+    // int setThetas(const std::vector<std::vector<Vector2D<float>>> &thetas);
     int setThetas(const std::vector<std::vector<Vector2D<float>>> &thetas);
 
     /**
      * Calculation beta positions with lens masses.
      */
-    int calculatePositions(const std::vector<std::vector<float>> &masses);
+    int calculatePositions(
+        const std::vector<std::vector<float>> &masses,
+        const std::vector<float> &mass_sheet = std::vector<float>(0));
 
     int
     calculatePositionsBenchmark(const std::vector<std::vector<float>> &masses,

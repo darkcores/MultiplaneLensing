@@ -24,5 +24,5 @@ CompositeLens CompositeLensBuilder::getLens() {
     lens_ptr = (Plummer *)malloc(size);
     cpuErrchk(lens_ptr);
     std::memcpy((void *)lens_ptr, &m_lenses[0], size);
-    return CompositeLens(lens_ptr, m_lenses.size());
+    return CompositeLens(lens_ptr, m_lenses.size(), m_Dd);
 }

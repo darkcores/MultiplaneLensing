@@ -174,15 +174,58 @@ __global__ void mp_traceThetaGlobal(const long n,
     for (int i = 0; i < numlenses; i++) {
         const float2 a = alphas[i];
         const float dist = dist_sources[l];
-		t.x = t.x - a.x * dist;
-		t.y = t.y - a.y * dist;
+        t.x = t.x - a.x * dist;
+        t.y = t.y - a.y * dist;
+        l++;
+    }
+    betas[z] = t;
+}
+
+__global__ void mp_traceThetaMassSheet(const long n,
+                                       const float2 *__restrict__ thetas,
+                                       float2 *__restrict__ betas,
+                                       const float *__restrict__ dist_lenses,
+                                       const float *__restrict__ dist_sources,
+                                       const int numlenses, const int offset,
+                                       const CompositeLens *__restrict__ lenses,
+                                       const float *__restrict__ mass_sheets) {
+    const long z = min((long)blockIdx.x * blockDim.x + threadIdx.x, n - 1);
+
+    const int MAX_PLANES = 128;
+    float2 alphas[MAX_PLANES];
+
+    float2 last_theta;
+    int l = 0;
+    for (int i = 0; i <= numlenses; i++) {
+        auto t = thetas[z];
+        if (i > 0) {
+            const int idx = i - 1;
+            alphas[idx] = lenses[idx].getAlpha(last_theta, mass_sheets[i]);
+        }
+        for (int j = 0; j < i; j++) {
+            const float2 a = alphas[j];
+            const float dist = dist_lenses[l];
+            t.x = t.x - a.x * dist;
+            t.y = t.y - a.y * dist;
+            l++;
+        }
+        last_theta = t;
+    }
+
+    l = offset;
+    auto t = thetas[z];
+    for (int i = 0; i < numlenses; i++) {
+        const float2 a = alphas[i];
+        const float dist = dist_sources[l];
+        t.x = t.x - a.x * dist;
+        t.y = t.y - a.y * dist;
         l++;
     }
     betas[z] = t;
 }
 
 int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const size_t n,
-                            const int plane) const {
+                            const int plane, const float *mass_sheet) const {
     size_t offset = 0;
     for (int i = 0; i < plane; i++) {
         int s = m_dist_offsets[i];
@@ -190,9 +233,15 @@ int Multiplane::traceThetas(const float2 *thetas, float2 *betas, const size_t n,
     }
 
     int numlenses = m_dist_offsets[plane];
-    mp_traceThetaGlobal<<<(n / 128) + 1, 128>>>(n, thetas, betas, m_dist_lenses,
-                                                m_dist_sources, numlenses,
-                                                offset, m_lenses);
+    if (mass_sheet == nullptr) {
+        mp_traceThetaGlobal<<<(n / 128) + 1, 128>>>(
+            n, thetas, betas, m_dist_lenses, m_dist_sources, numlenses, offset,
+            m_lenses);
+    } else {
+        mp_traceThetaMassSheet<<<(n / 128) + 1, 128>>>(
+            n, thetas, betas, m_dist_lenses, m_dist_sources, numlenses, offset,
+            m_lenses, mass_sheet);
+    }
     gpuErrchk(cudaGetLastError());
 
     return 0;
