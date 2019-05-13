@@ -28,7 +28,7 @@ CompositeLensBuilder
 MultiPlaneContext::buildLens(const float redshift,
                              const std::vector<PlummerParams> &params) {
     double Dd = m_cosmology.angularDiameterDistance(redshift);
-    CompositeLensBuilder builder(redshift, Dd);
+    CompositeLensBuilder builder(redshift, Dd, 1 / m_angularUnit);
     for (auto &param : params) {
         float2 position = param.position.f2();
         Plummer plum(Dd, param.mass, param.angularwidth, 1 / m_angularUnit,

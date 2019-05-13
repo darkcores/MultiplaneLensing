@@ -1,5 +1,4 @@
 SET(COMMON_SRC
-  plummer.cu
   composite.cu
   composite.cpp
   multiplane.cu

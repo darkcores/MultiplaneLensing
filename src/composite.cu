@@ -11,7 +11,7 @@ __global__ void cmp_init_lenses(const int n, const Plummer *__restrict__ p,
 }
 
 CompositeLens::CompositeLens(Plummer *lenses, const int lenses_size,
-                             const double Dd, const bool cuda)
+                             const double Dd, const double scale, const bool cuda)
     : m_lenses(lenses), m_lenses_size(lenses_size), m_cuda(cuda) {
     if (m_cuda) {
         float4 *tmp;
@@ -21,7 +21,7 @@ CompositeLens::CompositeLens(Plummer *lenses, const int lenses_size,
                                                           m_lens_int);
     }
 	double x = 4 * CONST_PI * CONST_G * Dd;
-	x /= (SPEED_C * SPEED_C);
+	x /= ((SPEED_C * SPEED_C) * (scale * scale));
 	m_mass_sheet = x;
 }
 
@@ -50,5 +50,5 @@ CompositeLens CompositeLensBuilder::getCuLens() {
     gpuErrchk(cudaMalloc(&lens_ptr, numbytes));
     gpuErrchk(
         cudaMemcpy(lens_ptr, &m_lenses[0], numbytes, cudaMemcpyHostToDevice));
-    return CompositeLens(lens_ptr, (int)size, m_Dd, true);
+    return CompositeLens(lens_ptr, (int)size, m_Dd, m_scale, true);
 }

@@ -18,8 +18,8 @@ class CompositeLens {
     float m_mass_sheet;
 
   public:
-    CompositeLens(Plummer *lenses, const int lenses_size, const double Dd = 0,
-                  const bool cuda = false);
+    CompositeLens(Plummer *lenses, const int lenses_size, const double Dd = 0.0,
+                  const double scale = 1.0, const bool cuda = false);
 
     int destroy();
 
@@ -42,7 +42,7 @@ class CompositeLens {
      * @returns Alpha vector.
      */
     __host__ __device__ float2 getAlpha(const float2 &theta,
-                                        const float &mass_scale = 0) const {
+                                        const float &mass_scale = 0.0) const {
         const unsigned int DIM = 128;
         float2 alpha{0, 0};
 
@@ -80,9 +80,11 @@ class CompositeLens {
                 alpha.y += t.y;
             }
         }
-		const float scale = m_mass_sheet * mass_scale;
-		alpha.x += scale * theta.x;
-		alpha.y += scale * theta.y;
+		if (mass_scale != 0.0) {
+			const float scale = m_mass_sheet * mass_scale;
+			alpha.x += scale * theta.x;
+			alpha.y += scale * theta.y;
+		}
 #endif
         return alpha;
     }
@@ -95,8 +97,10 @@ class CompositeLens {
             movedtheta = m_lenses[i].getAlpha(theta);
             alpha += movedtheta;
         }
-		const float scale = m_mass_sheet * mass_scale;
-		alpha += theta * scale; 
+		if (mass_scale != 0.0) {
+			const float scale = m_mass_sheet * mass_scale;
+			alpha += (theta * scale);
+		}
         return alpha;
     }
 #endif
@@ -108,16 +112,18 @@ class CompositeLens {
 class CompositeLensBuilder {
   private:
     float m_redshift;
-    double m_Dd;
+    double m_Dd, m_scale;
     std::vector<Plummer> m_lenses;
 
   public:
     /**
      * New CompositeLensBuilder.
      */
-    CompositeLensBuilder(const float redshift, const double Dd = 0.0) {
+    CompositeLensBuilder(const float redshift, const double Dd = 0.0,
+                         const double scale = 1.0) {
         m_redshift = redshift;
         m_Dd = Dd;
+        m_scale = scale;
     }
 
     float redshift() const { return m_redshift; }
