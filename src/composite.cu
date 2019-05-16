@@ -21,7 +21,7 @@ CompositeLens::CompositeLens(Plummer *lenses, const int lenses_size,
                                                           m_lens_int);
     }
 	double x = 4 * CONST_PI * CONST_G * Dd;
-	x /= ((SPEED_C * SPEED_C) * (scale * scale));
+	x /= ((SPEED_C * SPEED_C)/* * (scale * scale)*/);
 	m_mass_sheet = x;
 }
 
