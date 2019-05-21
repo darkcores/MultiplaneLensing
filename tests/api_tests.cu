@@ -24,8 +24,8 @@ TEST(APITests, SetupTest) {
         params.push_back(p);
     }
 
-    std::vector<std::vector<Vector2D<float>>> thetas(10);
-    for (int j = 0; j < 10; j++) {
+    std::vector<std::vector<Vector2D<float>>> thetas(2);
+    for (int j = 0; j < 2; j++) {
         for (int i = 0; i < 100; i++) {
             thetas[j].push_back(Vector2D<float>(i, i + j));
         }

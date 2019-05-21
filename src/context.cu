@@ -45,14 +45,21 @@ int MultiPlaneContext::init(
     try {
         MultiplaneBuilder planebuilder(m_cosmology);
 
+        if (lensRedshifts.size() != params.size()) {
+            std::cerr << "Redshift does not match parameters" << std::endl;
+            return -1;
+        }
+
         // Setup lenses
         for (size_t i = 0; i < lensRedshifts.size(); i++) {
             auto lens = buildLens(lensRedshifts[i], params[i]);
+            m_lens_count.push_back(params[i].size());
             planebuilder.addPlane(lens);
         }
 
         // Setup sources
         planebuilder.setRedshifts(sourceRedshifts);
+        m_source_len = sourceRedshifts.size();
 
         // Build multiplane
         m_multiplane = planebuilder.getCuMultiPlanePtr();
@@ -66,6 +73,10 @@ int MultiPlaneContext::init(
 int MultiPlaneContext::setThetas(
     const std::vector<std::vector<Vector2D<float>>> &thetas) {
     try {
+        if (thetas.size() != m_source_len) {
+            std::cerr << "Thetas do not match source planes" << std::endl;
+            return -1;
+        }
         m_theta_len = 0;
         // Resize list of betas
         // std::cout << "Thetas size " << thetas.size() << std::endl;
@@ -102,12 +113,29 @@ int MultiPlaneContext::calculatePositions(
     const std::vector<std::vector<float>> &masses,
     const std::vector<float> &mass_sheet) {
     try {
+        // Check masses & mass sheet
+        if (masses.size() != m_lens_count.size()) {
+            std::cerr << "Masses do not match lenses" << std::endl;
+            return -1;
+        }
+		for (int i = 0; i < masses.size(); i++) {
+			if (masses[i].size() != m_lens_count[i]) {
+				std::cerr << "Masses do not match lens" << std::endl;
+				return -1;
+			}
+		}
+        if (mass_sheet.size() != 0 &&
+            mass_sheet.size() != m_lens_count.size()) {
+            std::cerr << "Mass sheet does not match lenses" << std::endl;
+            return -1;
+        }
+
         // Setup new masses
         m_multiplane->updateMassesCu(masses);
 
         // cudaStream_t stream1;
         // gpuErrchk(cudaStreamCreate(&stream1));
-		thrust::device_vector<float> dev_mass_sheet(mass_sheet);
+        thrust::device_vector<float> dev_mass_sheet(mass_sheet);
         float *dev_mass_sheet_ptr = nullptr;
         if (mass_sheet.size() > 0) {
             dev_mass_sheet_ptr = thrust::raw_pointer_cast(&dev_mass_sheet[0]);

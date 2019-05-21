@@ -35,8 +35,8 @@ class MultiPlaneContext {
     const double m_angularUnit;
     const Cosmology m_cosmology;
     Vector2D<float> *m_theta;
-    size_t m_theta_len;
-    std::vector<size_t> m_theta_count;
+    size_t m_theta_len, m_source_len;
+    std::vector<size_t> m_theta_count, m_lens_count;
     Vector2D<float> *m_beta;
     Multiplane *m_multiplane;
     std::vector<std::vector<Vector2D<float>>> m_betas;
