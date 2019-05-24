@@ -29,6 +29,7 @@ void write_file(MultiPlaneContext *);
 // To keep this nice and readable.
 
 double angularUnit = 0;
+int device = 0;
 // Lens redshifts.
 std::vector<float> lens_z;
 // Lens parameters.
@@ -52,6 +53,7 @@ void print_help() {
               << std::endl;
     std::cout << "Program arguments: " << std::endl;
     std::cout << "\t-d\tSelect cuda device" << std::endl;
+    std::cout << "\t-l\tList cuda devices" << std::endl;
     std::cout << "\t-i\tInput file" << std::endl;
     std::cout << "\t-o\tOutput file" << std::endl;
 }
@@ -59,26 +61,39 @@ void print_help() {
 void parse_args(int argc, char *argv[]) {
     int c;
 
-    while ((c = getopt(argc, argv, "d:hi:o:")) != -1) {
+    while ((c = getopt(argc, argv, "d:lhi:o:")) != -1) {
         switch (c) {
-        case 'd': // Device select
-            std::cout << "Cuda device: TODO" << std::endl;
+        case 'd': { // Device select
+			device = std::atoi(optarg);
+            std::cout << "Cuda device: " << device << std::endl;
             break;
-        case 'i': // Input
+        }
+        case 'l': { // Device print
+            int nDev = cudaDevices(true);
+            if (nDev == 0) {
+                std::cout << "No devices found\n";
+            }
+            std::exit(0);
+        }
+        case 'i': { // Input
             std::cout << "Load file: " << optarg << std::endl;
             infile = optarg;
             break;
-        case 'o': // Output
+        }
+        case 'o': { // Output
             std::cout << "Output file: " << optarg << std::endl;
             outfile = optarg;
             break;
-        case 'h': // Help
+        }
+        case 'h': { // Help
             print_help();
             std::exit(0);
             break;
-        default:
+        }
+        default: {
             std::cout << "Unknown parameter: " << (char)c << std::endl;
             std::exit(1);
+        }
         }
     }
 
@@ -182,7 +197,7 @@ int main(int argc, char *argv[]) {
 
     // Setup
     const Cosmology cosm(0.7, 0.3, 0.0, 0.7);
-    MultiPlaneContext ctx(angularUnit, cosm);
+    MultiPlaneContext ctx(angularUnit, cosm, device);
 
     std::cout << "Lens redshifts: ";
     for (auto val : lens_z) {

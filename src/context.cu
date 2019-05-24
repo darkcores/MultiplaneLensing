@@ -5,15 +5,36 @@
 #include <numeric>
 #include <thrust/device_vector.h>
 
+int cudaDevices(bool print) {
+    int nDev = 0;
+    cudaGetDeviceCount(&nDev);
+    if (print) {
+        for (int i = 0; i < nDev; i++) {
+            cudaDeviceProp prop;
+            cudaGetDeviceProperties(&prop, i);
+            printf("Device Number: %d\n", i);
+            printf("  Device name: %s\n", prop.name);
+            printf("  Memory Clock Rate (KHz): %d\n", prop.memoryClockRate);
+            printf("  Memory Bus Width (bits): %d\n", prop.memoryBusWidth);
+            printf("  Peak Memory Bandwidth (GB/s): %f\n\n",
+                   2.0 * prop.memoryClockRate * (prop.memoryBusWidth / 8) /
+                       1.0e6);
+        }
+    }
+    return nDev;
+}
+
 MultiPlaneContext::MultiPlaneContext(const double angularUnit,
-                                     const Cosmology cosmology)
-    : m_angularUnit(angularUnit), m_cosmology(cosmology) {
+                                     const Cosmology cosmology,
+                                     const int device)
+    : m_angularUnit(angularUnit), m_cosmology(cosmology), m_device(device) {
     m_theta = nullptr;
     m_beta = nullptr;
     m_multiplane = nullptr;
 }
 
 MultiPlaneContext::~MultiPlaneContext() {
+	gpuErrchk(cudaSetDevice(m_device));
     if (m_theta)
         gpuErrchk(cudaFree(m_theta));
     if (m_beta)
@@ -43,6 +64,7 @@ int MultiPlaneContext::init(
     const std::vector<std::vector<PlummerParams>> &params,
     const std::vector<float> &sourceRedshifts) {
     try {
+		gpuErrchk(cudaSetDevice(m_device));
         MultiplaneBuilder planebuilder(m_cosmology);
 
         if (lensRedshifts.size() != params.size()) {
@@ -73,6 +95,7 @@ int MultiPlaneContext::init(
 int MultiPlaneContext::setThetas(
     const std::vector<std::vector<Vector2D<float>>> &thetas) {
     try {
+		gpuErrchk(cudaSetDevice(m_device));
         if (thetas.size() != m_source_len) {
             std::cerr << "Thetas do not match source planes" << std::endl;
             return -1;
@@ -113,17 +136,18 @@ int MultiPlaneContext::calculatePositions(
     const std::vector<std::vector<float>> &masses,
     const std::vector<float> &mass_sheet) {
     try {
+		gpuErrchk(cudaSetDevice(m_device));
         // Check masses & mass sheet
         if (masses.size() != m_lens_count.size()) {
             std::cerr << "Masses do not match lenses" << std::endl;
             return -1;
         }
-		for (int i = 0; i < masses.size(); i++) {
-			if (masses[i].size() != m_lens_count[i]) {
-				std::cerr << "Masses do not match lens" << std::endl;
-				return -1;
-			}
-		}
+        for (int i = 0; i < masses.size(); i++) {
+            if (masses[i].size() != m_lens_count[i]) {
+                std::cerr << "Masses do not match lens" << std::endl;
+                return -1;
+            }
+        }
         if (mass_sheet.size() != 0 &&
             mass_sheet.size() != m_lens_count.size()) {
             std::cerr << "Mass sheet does not match lenses" << std::endl;
@@ -174,6 +198,7 @@ int MultiPlaneContext::calculatePositions(
 int MultiPlaneContext::calculatePositionsBenchmark(
     const std::vector<std::vector<float>> &masses, float &millis, int nruns) {
     try {
+		gpuErrchk(cudaSetDevice(m_device));
         std::vector<float> m(nruns);
 
         // First few rounds to warm up the card
@@ -246,5 +271,6 @@ std::cout << "Run " << x << "; Sizes: " << tcount << "; "
 
 const std::vector<Vector2D<float>> &
 MultiPlaneContext::getSourcePositions(int idx) const {
+	gpuErrchk(cudaSetDevice(m_device));
     return m_betas[idx];
 }

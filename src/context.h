@@ -25,6 +25,12 @@ struct PlummerParams {
 };
 
 /**
+ * Return a how many cuda devices are available.
+ * @param print Prints device info for each device to stdout
+ */
+int cudaDevices(bool print = false);
+
+/**
  * Context for multiplane plummer calculations.
  *
  * For sample use cases see api_tests.cu in tests/ or example.cpp in
@@ -32,6 +38,7 @@ struct PlummerParams {
  */
 class MultiPlaneContext {
   private:
+	const int m_device;
     const double m_angularUnit;
     const Cosmology m_cosmology;
     Vector2D<float> *m_theta;
@@ -49,10 +56,13 @@ class MultiPlaneContext {
      * Create a new context.
      *
      * @param angularUnit What unit is used in the input data,
-     * eg. ANGLE_ARCSEC.
-     * @param cosmology What parameters are used for cosmology.
+     * eg. ANGLE_ARCSEC.  
+	 * @param cosmology What parameters are used for cosmology.  
+	 * @param device CUDA device id, used for multi GPU. This class is 
+	 * synchronous, so using a thread per device is recommended.
      */
-    MultiPlaneContext(const double angularUnit, const Cosmology cosmology);
+    MultiPlaneContext(const double angularUnit, const Cosmology cosmology,
+                      const int device = 0);
     ~MultiPlaneContext();
 
     /**
