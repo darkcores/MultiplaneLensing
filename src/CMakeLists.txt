@@ -5,6 +5,7 @@ SET(COMMON_SRC
   multiplane.cpp
   context.cu
   util/cosmology.cu
+  multiplane_api.cpp
 )
 
 add_library(lens_common SHARED
