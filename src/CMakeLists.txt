@@ -19,7 +19,7 @@ set_target_properties(lens_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set_target_properties(lens_common
   PROPERTIES PUBLIC_HEADER
-  "context.h;cpu_context.h")
+  "context.h")
 
 INSTALL (
   FILES util/cosmology.h util/vector2d.h
