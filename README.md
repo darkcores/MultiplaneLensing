@@ -94,5 +94,8 @@ file.
 
 # References
 
+This project was made for my bachelor's thesis for the School for
+Information Technology from the tUL.
+
 [GRALE2](https://github.com/j0r1/GRALE2) has often been used as a
 reference for this project.
