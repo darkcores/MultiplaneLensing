@@ -68,7 +68,7 @@ For archlinux and others you can specify `DESTDIR`.
 	sudo make DESTDIR="$pkgdir/" install
 
 Alternatively add to the ld config if you encounter
-and error like this:
+an error like this:
 
 	./example: error while loading shared libraries: liblens_common.so: cannot open shared object file: No such file or directory
 	
