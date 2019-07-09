@@ -200,7 +200,7 @@ __global__ void mp_traceThetaMassSheet(const long n,
         auto t = thetas[z];
         if (i > 0) {
             const int idx = i - 1;
-            alphas[idx] = lenses[idx].getAlpha(last_theta, mass_sheets[i]);
+            alphas[idx] = lenses[idx].getAlpha(last_theta, mass_sheets[idx]);
         }
         for (int j = 0; j < i; j++) {
             const float2 a = alphas[j];
