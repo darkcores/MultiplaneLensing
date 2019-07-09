@@ -55,7 +55,8 @@ int mpcuInitMultiPlaneCalculation(
 
 // Voor een geinitialiseerde context, pas de initiele massa's aan volgens 
 // massFactors en bereken de beta-vectoren voor alle bronnen
-int mpcuCalculateSourcePositions(MultiPlaneCtx ctx, const std::vector<std::vector<float>> &massFactors);
+int mpcuCalculateSourcePositions(MultiPlaneCtx ctx, const std::vector<std::vector<float>> &massFactors,
+		                         const std::vector<float> &sheetDensities = std::vector<float>());
 
 // Voor de bron met index 'srcIdx', geef de berekende beta-posities terug
 const std::vector<MPCUXY> &mpcuGetSourcePositions(MultiPlaneCtx ctx, int srcIdx);
