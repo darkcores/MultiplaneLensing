@@ -32,9 +32,10 @@ int mpcuInitMultiPlaneCalculation(
 	return 0;
 }
 
-int mpcuCalculateSourcePositions(MultiPlaneCtx ctx, const vector<vector<float>> &massFactors)
+int mpcuCalculateSourcePositions(MultiPlaneCtx ctx, const vector<vector<float>> &massFactors,
+                                 const vector<float> &sheetDensities)
 {
-	return ctx->calculatePositions(massFactors);
+	return ctx->calculatePositions(massFactors, sheetDensities);
 }
 
 const vector<MPCUXY> &mpcuGetSourcePositions(MultiPlaneCtx ctx, int srcIdx)
