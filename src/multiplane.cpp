@@ -12,7 +12,11 @@ void MultiplaneBuilder::addPlane(CompositeLensBuilder &lensbuilder) {
 
 void MultiplaneBuilder::prepare() {
     std::sort(m_builders.begin(), m_builders.end());
-    std::sort(m_source_z.begin(), m_source_z.end());
+
+	// This causes incorrect results if the source redshifts are not provided
+	// in an ordered fashion. Without the sorting both sorted and unsorted
+	// input appears to work correctly.
+    // std::sort(m_source_z.begin(), m_source_z.end());
 
     // Calculate distances for all the lenses
     double sz, lz, Di, Dji, Dd;
