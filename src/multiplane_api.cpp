@@ -16,9 +16,10 @@ int mpcuInitMultiPlaneCalculation(
 		const vector<vector<MPCUInitialPlummerInfo>> &fixedPlummerParameters, 
 		const vector<float> &sourceRedshifts,
 		const vector<vector<MPCUXY>> &theta, 
-		MultiPlaneCtx *pCtx)
+		MultiPlaneCtx *pCtx,
+		int deviceIdx)
 {
-	MultiPlaneContext *pContext = new MultiPlaneContext(angularUnit, Cosmology(h, W_m, W_r, W_v, w));
+	MultiPlaneContext *pContext = new MultiPlaneContext(angularUnit, Cosmology(h, W_m, W_r, W_v, w), deviceIdx);
 	int status = pContext->init(lensRedshifts, fixedPlummerParameters, sourceRedshifts);
 	if (status < 0)
 	{
@@ -48,3 +49,7 @@ void mpcuClearContext(MultiPlaneCtx ctx)
 	delete ctx;
 }
 
+int mpcuGetNumberOfDevices(void)
+{
+	return MultiPlaneContext::getNumberOfDevices();
+}
