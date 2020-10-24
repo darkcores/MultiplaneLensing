@@ -52,6 +52,11 @@ class MultiPlaneContext {
                                    const std::vector<PlummerParams> &params);
 
   public:
+	/**
+	 * Returns the number of available devices.
+	 */
+	static int getNumberOfDevices();
+
     /**
      * Create a new context.
      *

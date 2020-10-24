@@ -51,7 +51,10 @@ int mpcuInitMultiPlaneCalculation(
 		const std::vector<std::vector<MPCUXY>> &theta, 
 
 		// Als initialisatie werkte
-		MultiPlaneCtx *pCtx);
+		MultiPlaneCtx *pCtx,
+
+		// Device index als meerdere beschikbaar
+		int deviceIdx);
 
 // Voor een geinitialiseerde context, pas de initiele massa's aan volgens 
 // massFactors en bereken de beta-vectoren voor alle bronnen
@@ -63,6 +66,9 @@ const std::vector<MPCUXY> &mpcuGetSourcePositions(MultiPlaneCtx ctx, int srcIdx)
 
 // Alles weer opruimen
 void mpcuClearContext(MultiPlaneCtx ctx);
+
+// Aantal beschikbare devices
+int mpcuGetNumberOfDevices(void);
 
 } // extern "C"
 

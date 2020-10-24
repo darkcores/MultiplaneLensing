@@ -274,3 +274,11 @@ MultiPlaneContext::getSourcePositions(int idx) const {
 	gpuErrchk(cudaSetDevice(m_device));
     return m_betas[idx];
 }
+
+int MultiPlaneContext::getNumberOfDevices()
+{
+	int nDev = 0;
+	cudaGetDeviceCount(&nDev);
+	return nDev;
+}
+
